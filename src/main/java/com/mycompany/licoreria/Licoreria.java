@@ -424,7 +424,7 @@ public class Licoreria {
         }
     }
 
-    private static void centrarFormulario(javax.swing.JInternalFrame formulario) {
+    public static void centrarFormulario(javax.swing.JInternalFrame formulario) {
         Dimension desktopSize = desktopPane.getSize();
         Dimension formSize = formulario.getSize();
 
