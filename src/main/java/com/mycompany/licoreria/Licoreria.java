@@ -84,13 +84,14 @@ public class Licoreria {
                         + "<div style='background: #F8F9F9; padding: 20px; border-radius: 10px; margin: 20px;'>"
                         + "<h3 style='color: #2E4053;'>Módulos Disponibles:</h3>"
                         + "<ul style='text-align: left; color: #566573; font-size: 14px;'>"
-                        + "<li><b>Panel de Administración</b> - Gestión completa del sistema</li>"
-                        + "<li><b>Gestión de Usuarios</b> - Crear y administrar usuarios</li>"
-                        + "<li><b>Historial del Sistema</b> - Ver registros de actividades</li>"
-                        + "<li><b>Peticiones de Stock</b> - Gestionar solicitudes de inventario</li>"
-                        + "<li><b>Módulo de Bodega</b> - Gestión completa de inventario</li>"
-                        + "<li><b>Solicitar Productos</b> - Pedidos a bodega</li>"
-                        + "<li><b>Ver Peticiones Bodega</b> - Gestión de solicitudes</li>"
+                        + "<li><b>🔐 Sistema de Login</b> - Autenticación segura</li>"
+                        + "<li><b>👥 Gestión de Usuarios</b> - Administración completa</li>"
+                        + "<li><b>📊 Panel de Administración</b> - Control total del sistema</li>"
+                        + "<li><b>📋 Historial del Sistema</b> - Registro de actividades</li>"
+                        + "<li><b>📦 Módulo de Bodega</b> - Gestión de inventario</li>"
+                        + "<li><b>🛒 Punto de Venta</b> - Sistema de ventas completo</li>"
+                        + "<li><b>📮 Solicitar Stock</b> - Peticiones a bodega</li>"
+                        + "<li><b>📈 Peticiones de Stock</b> - Gestión de solicitudes</li>"
                         + "</ul>"
                         + "</div>"
                         + "<p style='color: #85929E; font-size: 12px;'>Seleccione una opción del menú para comenzar</p>"
@@ -110,6 +111,10 @@ public class Licoreria {
         JMenu menuSistema = new JMenu("Sistema");
         menuSistema.setMnemonic('S');
 
+        JMenuItem menuItemLogin = new JMenuItem("Iniciar Sesión");
+        menuItemLogin.setMnemonic('I');
+        menuItemLogin.addActionListener(e -> abrirFormularioLogin());
+
         JMenuItem menuItemDashboard = new JMenuItem("Dashboard Principal");
         menuItemDashboard.setMnemonic('D');
         menuItemDashboard.addActionListener(e -> mostrarDashboard());
@@ -118,6 +123,7 @@ public class Licoreria {
         menuItemSalir.setMnemonic('S');
         menuItemSalir.addActionListener(e -> confirmarSalida());
 
+        menuSistema.add(menuItemLogin);
         menuSistema.add(menuItemDashboard);
         menuSistema.addSeparator();
         menuSistema.add(menuItemSalir);
@@ -156,18 +162,39 @@ public class Licoreria {
         menuItemModuloBodega.setMnemonic('M');
         menuItemModuloBodega.addActionListener(e -> abrirModuloBodega());
 
-        JMenuItem menuItemPedirProductos = new JMenuItem("Solicitar Productos a Bodega");
+        JMenuItem menuItemPedirProductos = new JMenuItem("Solicitar a Proveedores");
         menuItemPedirProductos.setMnemonic('P');
-        menuItemPedirProductos.addActionListener(e -> abrirPedirProductosBodega());
+        menuItemPedirProductos.addActionListener(e -> abrirBodegaPedirProductos());
 
-        JMenuItem menuItemVerPeticionesBodega = new JMenuItem("Ver Peticiones de Bodega");
+        JMenuItem menuItemVerPeticionesBodega = new JMenuItem("Ver Peticiones de Vendedores");
         menuItemVerPeticionesBodega.setMnemonic('V');
-        menuItemVerPeticionesBodega.addActionListener(e -> abrirVerPeticionesBodega());
+        menuItemVerPeticionesBodega.addActionListener(e -> abrirBodegaVerPeticiones());
 
         menuBodega.add(menuItemModuloBodega);
         menuBodega.addSeparator();
         menuBodega.add(menuItemPedirProductos);
         menuBodega.add(menuItemVerPeticionesBodega);
+
+        // Menú Vendedor
+        JMenu menuVendedor = new JMenu("Vendedor");
+        menuVendedor.setMnemonic('V');
+
+        JMenuItem menuItemPuntoVenta = new JMenuItem("Punto de Venta");
+        menuItemPuntoVenta.setMnemonic('P');
+        menuItemPuntoVenta.addActionListener(e -> abrirVenderForm());
+
+        JMenuItem menuItemPedirStock = new JMenuItem("Solicitar Stock a Bodega");
+        menuItemPedirStock.setMnemonic('S');
+        menuItemPedirStock.addActionListener(e -> abrirVendedorPedirForm());
+
+        JMenuItem menuItemModuloVendedor = new JMenuItem("Módulo Completo de Vendedor");
+        menuItemModuloVendedor.setMnemonic('M');
+        menuItemModuloVendedor.addActionListener(e -> abrirVendedorMainForm());
+
+        menuVendedor.add(menuItemPuntoVenta);
+        menuVendedor.add(menuItemPedirStock);
+        menuVendedor.addSeparator();
+        menuVendedor.add(menuItemModuloVendedor);
 
         // Menú Inventario
         JMenu menuInventario = new JMenu("Inventario");
@@ -184,20 +211,20 @@ public class Licoreria {
         menuInventario.add(menuItemProductos);
         menuInventario.add(menuItemStock);
 
-        // Menú Ventas
-        JMenu menuVentas = new JMenu("Ventas");
-        menuVentas.setMnemonic('V');
+        // Menú Reportes
+        JMenu menuReportes = new JMenu("Reportes");
+        menuReportes.setMnemonic('R');
 
-        JMenuItem menuItemPuntoVenta = new JMenuItem("Punto de Venta");
-        menuItemPuntoVenta.setMnemonic('P');
-        menuItemPuntoVenta.addActionListener(e -> mostrarMensajeEnDesarrollo("Punto de Venta"));
+        JMenuItem menuItemReporteVentas = new JMenuItem("Reporte de Ventas");
+        menuItemReporteVentas.setMnemonic('V');
+        menuItemReporteVentas.addActionListener(e -> mostrarMensajeEnDesarrollo("Reporte de Ventas"));
 
-        JMenuItem menuItemFacturacion = new JMenuItem("Facturación");
-        menuItemFacturacion.setMnemonic('F');
-        menuItemFacturacion.addActionListener(e -> mostrarMensajeEnDesarrollo("Facturación"));
+        JMenuItem menuItemReporteStock = new JMenuItem("Reporte de Stock");
+        menuItemReporteStock.setMnemonic('S');
+        menuItemReporteStock.addActionListener(e -> mostrarMensajeEnDesarrollo("Reporte de Stock"));
 
-        menuVentas.add(menuItemPuntoVenta);
-        menuVentas.add(menuItemFacturacion);
+        menuReportes.add(menuItemReporteVentas);
+        menuReportes.add(menuItemReporteStock);
 
         // Menú Ayuda
         JMenu menuAyuda = new JMenu("Ayuda");
@@ -207,17 +234,52 @@ public class Licoreria {
         menuItemAcercaDe.setMnemonic('A');
         menuItemAcercaDe.addActionListener(e -> mostrarAcercaDe());
 
+        JMenuItem menuItemManual = new JMenuItem("Manual de Usuario");
+        menuItemManual.setMnemonic('M');
+        menuItemManual.addActionListener(e -> mostrarMensajeEnDesarrollo("Manual de Usuario"));
+
         menuAyuda.add(menuItemAcercaDe);
+        menuAyuda.add(menuItemManual);
 
         // Agregar menús a la barra
         menuBar.add(menuSistema);
         menuBar.add(menuAdministracion);
         menuBar.add(menuBodega);
+        menuBar.add(menuVendedor);
         menuBar.add(menuInventario);
-        menuBar.add(menuVentas);
+        menuBar.add(menuReportes);
         menuBar.add(menuAyuda);
 
         frame.setJMenuBar(menuBar);
+    }
+
+    private static void abrirFormularioLogin() {
+        // Verificar si ya está abierto el formulario
+        for (var window : desktopPane.getAllFrames()) {
+            if (window instanceof login) {
+                try {
+                    window.setSelected(true);
+                    window.moveToFront();
+                    return;
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        // Si no está abierto, crear nuevo
+        login loginForm = new login();
+        loginForm.setVisible(true);
+        desktopPane.add(loginForm);
+
+        // Centrar el formulario
+        centrarFormulario(loginForm);
+
+        try {
+            loginForm.setSelected(true);
+        } catch (java.beans.PropertyVetoException e) {
+            System.err.println("Error al seleccionar formulario: " + e.getMessage());
+        }
     }
 
     private static void abrirPanelAdministracion() {
@@ -366,7 +428,7 @@ public class Licoreria {
         }
     }
 
-    private static void abrirPedirProductosBodega() {
+    private static void abrirBodegaPedirProductos() {
         // Verificar si ya está abierto el formulario
         for (var window : desktopPane.getAllFrames()) {
             if (window instanceof BodegaPedirProductos) {
@@ -395,7 +457,7 @@ public class Licoreria {
         }
     }
 
-    private static void abrirVerPeticionesBodega() {
+    private static void abrirBodegaVerPeticiones() {
         // Verificar si ya está abierto el formulario
         for (var window : desktopPane.getAllFrames()) {
             if (window instanceof BodegaVerPeticiones) {
@@ -419,6 +481,94 @@ public class Licoreria {
 
         try {
             verPeticionesForm.setSelected(true);
+        } catch (java.beans.PropertyVetoException e) {
+            System.err.println("Error al seleccionar formulario: " + e.getMessage());
+        }
+    }
+
+    // NUEVOS MÉTODOS PARA VENDEDOR
+    private static void abrirVenderForm() {
+        // Verificar si ya está abierto el formulario
+        for (var window : desktopPane.getAllFrames()) {
+            if (window instanceof VenderForm) {
+                try {
+                    window.setSelected(true);
+                    window.moveToFront();
+                    return;
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        // Si no está abierto, crear nuevo
+        VenderForm venderForm = new VenderForm();
+        venderForm.setVisible(true);
+        desktopPane.add(venderForm);
+
+        // Centrar el formulario
+        centrarFormulario(venderForm);
+
+        try {
+            venderForm.setSelected(true);
+        } catch (java.beans.PropertyVetoException e) {
+            System.err.println("Error al seleccionar formulario: " + e.getMessage());
+        }
+    }
+
+    private static void abrirVendedorPedirForm() {
+        // Verificar si ya está abierto el formulario
+        for (var window : desktopPane.getAllFrames()) {
+            if (window instanceof VendedorPedirForm) {
+                try {
+                    window.setSelected(true);
+                    window.moveToFront();
+                    return;
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        // Si no está abierto, crear nuevo
+        VendedorPedirForm pedirForm = new VendedorPedirForm();
+        pedirForm.setVisible(true);
+        desktopPane.add(pedirForm);
+
+        // Centrar el formulario
+        centrarFormulario(pedirForm);
+
+        try {
+            pedirForm.setSelected(true);
+        } catch (java.beans.PropertyVetoException e) {
+            System.err.println("Error al seleccionar formulario: " + e.getMessage());
+        }
+    }
+
+    private static void abrirVendedorMainForm() {
+        // Verificar si ya está abierto el formulario
+        for (var window : desktopPane.getAllFrames()) {
+            if (window instanceof VendedorMainForm) {
+                try {
+                    window.setSelected(true);
+                    window.moveToFront();
+                    return;
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        // Si no está abierto, crear nuevo
+        VendedorMainForm vendedorForm = new VendedorMainForm();
+        vendedorForm.setVisible(true);
+        desktopPane.add(vendedorForm);
+
+        // Centrar el formulario
+        centrarFormulario(vendedorForm);
+
+        try {
+            vendedorForm.setSelected(true);
         } catch (java.beans.PropertyVetoException e) {
             System.err.println("Error al seleccionar formulario: " + e.getMessage());
         }
@@ -487,20 +637,21 @@ public class Licoreria {
                 "<html><div style='text-align: center;'>"
                         + "<h2 style='color: #2E4053;'>Sistema de Gestión - Licorería</h2>"
                         + "<div style='background: #F8F9F9; padding: 15px; border-radius: 8px; margin: 10px;'>"
-                        + "<p><b>Versión:</b> 2.0</p>"
+                        + "<p><b>Versión:</b> 3.0</p>"
                         + "<p><b>Desarrollado por:</b> Emerson</p>"
                         + "<p><b>Fecha:</b> Noviembre 2024</p>"
                         + "</div>"
                         + "<h3 style='color: #2E4053;'>Módulos Implementados:</h3>"
                         + "<ul style='text-align: left;'>"
-                        + "<li><b>Panel de Administración</b> - Interfaz MDI completa</li>"
-                        + "<li><b>Gestión de Usuarios</b> - CRUD completo con roles</li>"
-                        + "<li><b>Historial del Sistema</b> - Registro de actividades</li>"
-                        + "<li><b>Peticiones de Stock</b> - Gestión de inventario</li>"
-                        + "<li><b>Módulo de Bodega</b> - Gestión completa de inventario</li>"
-                        + "<li><b>Solicitar Productos</b> - Sistema de pedidos a bodega</li>"
-                        + "<li><b>Ver Peticiones Bodega</b> - Gestión de solicitudes</li>"
-                        + "<li><b>Base de Datos MySQL</b> - Persistencia completa</li>"
+                        + "<li><b>🔐 Sistema de Login</b> - Autenticación segura</li>"
+                        + "<li><b>👥 Gestión de Usuarios</b> - CRUD completo con roles</li>"
+                        + "<li><b>📊 Panel de Administración</b> - Interfaz MDI completa</li>"
+                        + "<li><b>📋 Historial del Sistema</b> - Registro de actividades</li>"
+                        + "<li><b>📦 Módulo de Bodega</b> - Gestión completa de inventario</li>"
+                        + "<li><b>🛒 Punto de Venta</b> - Sistema de ventas completo</li>"
+                        + "<li><b>📮 Solicitar Stock</b> - Peticiones a bodega</li>"
+                        + "<li><b>📈 Peticiones de Stock</b> - Gestión de solicitudes</li>"
+                        + "<li><b>🔄 Módulo de Vendedor</b> - Interfaz completa para vendedores</li>"
                         + "</ul>"
                         + "<p style='color: #85929E; font-size: 12px;'>Sistema desarrollado con Java Swing y MySQL</p>"
                         + "</div></html>",
@@ -518,13 +669,15 @@ public class Licoreria {
                         + "<p>El sistema se ha iniciado correctamente.</p>"
                         + "<p><b>Módulos disponibles:</b></p>"
                         + "<ul style='text-align: left;'>"
-                        + "<li>Panel de Administración (MDI)</li>"
-                        + "<li>Gestión de Usuarios</li>"
-                        + "<li>Historial del Sistema</li>"
-                        + "<li>Peticiones de Stock</li>"
-                        + "<li>Módulo de Bodega</li>"
-                        + "<li>Solicitar Productos a Bodega</li>"
-                        + "<li>Ver Peticiones de Bodega</li>"
+                        + "<li>🔐 Sistema de Login</li>"
+                        + "<li>👥 Gestión de Usuarios</li>"
+                        + "<li>📊 Panel de Administración (MDI)</li>"
+                        + "<li>📋 Historial del Sistema</li>"
+                        + "<li>📦 Módulo de Bodega</li>"
+                        + "<li>🛒 Punto de Venta</li>"
+                        + "<li>📮 Solicitar Stock a Bodega</li>"
+                        + "<li>📈 Peticiones de Stock</li>"
+                        + "<li>🔄 Módulo Completo de Vendedor</li>"
                         + "</ul>"
                         + "</div>"
                         + "<p>Utilice los menús para acceder a las diferentes funcionalidades.</p>"
