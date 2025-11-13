@@ -84,19 +84,23 @@ public class VentaDetalleDAO {
     }
 
     /**
-     * Obtener ventas del día actual
+     * Obtener ventas del día actual - VERSIÓN CORREGIDA
      */
     public List<Object[]> getVentasDelDia() {
         List<Object[]> ventas = new ArrayList<>();
+
         String sql = "SELECT " +
-                "f.factura_id, f.fecha_factura, f.cliente, f.total, " +
-                "u.username as vendedor, " +
-                "COUNT(df.detalle_factura_id) as items " +
+                "f.factura_id, " +
+                "DATE_FORMAT(f.fecha_factura, '%H:%i') as hora, " +
+                "f.cliente, " +
+                "f.total, " +
+                "COUNT(df.detalle_factura_id) as items, " +
+                "GROUP_CONCAT(p.nombre SEPARATOR ', ') as productos " +
                 "FROM Facturas f " +
-                "INNER JOIN Usuarios u ON f.usuario_id = u.usuario_id " +
-                "LEFT JOIN DetallesDeFacturas df ON f.factura_id = df.factura_id " +
+                "LEFT JOIN DetallesDeFacturas df ON f.factura_id = df.factura_id AND df.activo = true " +
+                "LEFT JOIN Productos p ON df.producto_id = p.producto_id " +
                 "WHERE DATE(f.fecha_factura) = CURDATE() AND f.activo = true " +
-                "GROUP BY f.factura_id, f.fecha_factura, f.cliente, f.total, u.username " +
+                "GROUP BY f.factura_id, f.fecha_factura, f.cliente, f.total " +
                 "ORDER BY f.fecha_factura DESC";
 
         try (Statement stmt = connection.createStatement();
@@ -104,17 +108,17 @@ public class VentaDetalleDAO {
 
             while (rs.next()) {
                 Object[] venta = {
-                        rs.getInt("factura_id"),
-                        rs.getTimestamp("fecha_factura"),
-                        rs.getString("cliente"),
-                        rs.getBigDecimal("total"),
-                        rs.getString("vendedor"),
-                        rs.getInt("items")
+                        rs.getString("hora"),        // Hora formateada
+                        rs.getString("cliente"),     // Cliente
+                        rs.getBigDecimal("total"),   // Total
+                        rs.getInt("items"),          // Cantidad de items
+                        rs.getString("productos")    // Nombres de productos
                 };
                 ventas.add(venta);
             }
         } catch (SQLException e) {
             e.printStackTrace();
+            System.err.println("Error en getVentasDelDia: " + e.getMessage());
         }
         return ventas;
     }
@@ -165,14 +169,13 @@ public class VentaDetalleDAO {
                     .map(VentaDetalle::getSubTotal)
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-            // Insertar factura
-            String sqlFactura = "INSERT INTO Facturas (cliente, total, usuario_id) VALUES (?, ?, ?)";
+            // Insertar factura - VERSIÓN CORREGIDA (sin usuario_id)
+            String sqlFactura = "INSERT INTO Facturas (cliente, total) VALUES (?, ?)";
             int facturaId;
 
             try (PreparedStatement stmt = conn.prepareStatement(sqlFactura, Statement.RETURN_GENERATED_KEYS)) {
                 stmt.setString(1, cliente);
                 stmt.setBigDecimal(2, total);
-                stmt.setInt(3, usuarioId);
                 stmt.executeUpdate();
 
                 ResultSet generatedKeys = stmt.getGeneratedKeys();

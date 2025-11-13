@@ -1,725 +1,921 @@
 package com.mycompany.licoreria.formularios;
 
-import com.mycompany.licoreria.controllers.PedidoBodegaController;
-import com.mycompany.licoreria.models.PedidoBodega;
+import com.mycompany.licoreria.controllers.BodegaController;
 import com.mycompany.licoreria.models.Producto;
-import com.mycompany.licoreria.utils.StockUtils;
-import com.mycompany.licoreria.utils.DateUtils;
-import java.util.List;
-import javax.swing.JOptionPane;
+import javax.swing.*;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.JTableHeader;
+import javax.swing.table.TableCellRenderer;
+import java.awt.*;
+import java.awt.event.*;
+import java.util.List;
 
-public class BodegaPedirProductos extends javax.swing.JInternalFrame {
-    private PedidoBodegaController pedidoController;
-    private DefaultTableModel tableModelInventario;
-    private DefaultTableModel tableModelPedidosPendientes;
-    private DefaultTableModel tableModelPedidosEnviados;
+public class BodegaPedirProductos extends JInternalFrame {
+    private BodegaController bodegaController;
 
-    // ID del usuario actual (debería venir del login)
-    private int usuarioActualId = 2; // Por defecto usuario vendedor
+    // Componentes de la UI
+    private JTable productosTable;
+    private DefaultTableModel tableModel;
+    private JTextField txtSearch, txtCantidadSolicitada;
+    private JTextArea txtObservaciones;
+    private JComboBox<String> cmbProductos;
+    private JButton btnSearch, btnSolicitar, btnLimpiar, btnVerReabastecer;
+    private JLabel lblProductoSeleccionado, lblStockActual, lblCostoUnitario, lblCostoTotal;
+
+    // Producto seleccionado
+    private Producto productoSeleccionado;
+
+    // Paleta de colores azules mejorada
+    private final Color PRIMARY_COLOR = new Color(70, 130, 180); // SteelBlue - azul principal
+    private final Color SECONDARY_COLOR = new Color(100, 149, 237); // CornflowerBlue - azul claro
+    private final Color ACCENT_COLOR = new Color(30, 144, 255); // DodgerBlue - azul brillante
+    private final Color BACKGROUND_COLOR = new Color(30, 40, 60); // Azul oscuro para fondo
+    private final Color CARD_BACKGROUND = new Color(40, 55, 80); // Azul medio para tarjetas
+    private final Color BORDER_COLOR = new Color(100, 130, 180); // Borde azul
+    private final Color TEXT_WHITE = Color.WHITE; // TODOS LOS TEXTOS EN BLANCO
+    private final Color SUCCESS_COLOR = new Color(86, 202, 133); // Verde azulado para éxitos
+    private final Color WARNING_COLOR = new Color(255, 193, 87); // Amarillo dorado para advertencias
+    private final Color DANGER_COLOR = new Color(255, 118, 117); // Rojo coral para peligros
+    private final Color INFO_COLOR = new Color(155, 89, 182); // Púrpura para información
 
     public BodegaPedirProductos() {
         initComponents();
-        pedidoController = new PedidoBodegaController();
-        initializeTables();
-        loadAllData();
-        setTitle("Solicitar Productos a Bodega");
+        setupModernDesign();
+        bodegaController = new BodegaController();
+        loadProductosParaReabastecer();
+        loadProductosComboBox();
     }
 
-    private void initializeTables() {
-        // Tabla de inventario bodega
-        tableModelInventario = new DefaultTableModel(
-                new Object[][]{},
-                new String[]{"ID", "Producto", "Stock Bodega", "Mínimo", "Unidad", "Disponible"}
-        ) {
+    private void initComponents() {
+        setTitle("Solicitar Productos a Proveedores - Sistema Licorería");
+        setClosable(true);
+        setResizable(true);
+        setMaximizable(true);
+        setIconifiable(true);
+        setDefaultCloseOperation(JInternalFrame.DISPOSE_ON_CLOSE);
+
+        setSize(1000, 700);
+        setLayout(new BorderLayout(10, 10));
+
+        // Panel principal con gradiente
+        JPanel mainPanel = new GradientPanel();
+        mainPanel.setLayout(new BorderLayout(10, 10));
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+
+        // Header
+        mainPanel.add(createHeaderPanel(), BorderLayout.NORTH);
+
+        // Content (Form + Table)
+        JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
+        splitPane.setDividerLocation(350);
+        splitPane.setDividerSize(3);
+        splitPane.setBorder(BorderFactory.createEmptyBorder());
+
+        // Form Panel
+        splitPane.setTopComponent(createFormPanel());
+
+        // Table Panel
+        splitPane.setBottomComponent(createTablePanel());
+
+        mainPanel.add(splitPane, BorderLayout.CENTER);
+
+        add(mainPanel);
+
+        // Centrar en el desktop
+        centrarEnDesktop();
+    }
+
+    private JPanel createHeaderPanel() {
+        JPanel headerPanel = new JPanel(new BorderLayout());
+        headerPanel.setBackground(new Color(0, 0, 0, 0));
+        headerPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER_COLOR, 1),
+                BorderFactory.createEmptyBorder(15, 20, 15, 20)
+        ));
+
+        // Título
+        JPanel titlePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        titlePanel.setBackground(new Color(0, 0, 0, 0));
+
+        JLabel iconLabel = new JLabel("📞");
+        iconLabel.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 24));
+        iconLabel.setForeground(TEXT_WHITE);
+
+        JLabel titleLabel = new JLabel("Solicitar Productos a Proveedores");
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        titleLabel.setForeground(TEXT_WHITE);
+
+        titlePanel.add(iconLabel);
+        titlePanel.add(Box.createHorizontalStrut(10));
+        titlePanel.add(titleLabel);
+
+        // Barra de búsqueda
+        JPanel searchPanel = new JPanel(new BorderLayout(10, 0));
+        searchPanel.setBackground(new Color(0, 0, 0, 0));
+
+        txtSearch = new ModernTextField("Buscar productos para reabastecer...");
+        txtSearch.setPreferredSize(new Dimension(250, 35));
+        txtSearch.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+            public void insertUpdate(javax.swing.event.DocumentEvent e) { filterTableData(); }
+            public void removeUpdate(javax.swing.event.DocumentEvent e) { filterTableData(); }
+            public void changedUpdate(javax.swing.event.DocumentEvent e) { filterTableData(); }
+        });
+
+        btnVerReabastecer = new ModernButton("🔄 Ver Necesidades", INFO_COLOR);
+        btnVerReabastecer.addActionListener(e -> loadProductosParaReabastecer());
+
+        searchPanel.add(txtSearch, BorderLayout.CENTER);
+        searchPanel.add(btnVerReabastecer, BorderLayout.EAST);
+
+        headerPanel.add(titlePanel, BorderLayout.WEST);
+        headerPanel.add(searchPanel, BorderLayout.EAST);
+
+        return headerPanel;
+    }
+
+    private JPanel createFormPanel() {
+        JPanel formPanel = new JPanel(new BorderLayout());
+        formPanel.setBackground(CARD_BACKGROUND);
+        formPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createTitledBorder(
+                        BorderFactory.createLineBorder(SECONDARY_COLOR, 2),
+                        "Formulario de Solicitud",
+                        0, 0,
+                        new Font("Segoe UI", Font.BOLD, 14),
+                        TEXT_WHITE
+                ),
+                BorderFactory.createEmptyBorder(20, 20, 20, 20)
+        ));
+
+        // Panel principal del formulario
+        JPanel mainFormPanel = new JPanel(new GridBagLayout());
+        mainFormPanel.setBackground(CARD_BACKGROUND);
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.insets = new Insets(8, 8, 8, 8);
+        gbc.weightx = 1.0;
+
+        // Selección de producto
+        gbc.gridx = 0; gbc.gridy = 0; gbc.gridwidth = 1;
+        JLabel lblProducto = new JLabel("Seleccionar Producto:");
+        lblProducto.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lblProducto.setForeground(TEXT_WHITE);
+        mainFormPanel.add(lblProducto, gbc);
+
+        gbc.gridx = 1; gbc.gridy = 0; gbc.gridwidth = 3;
+        cmbProductos = new ModernComboBox();
+        cmbProductos.addActionListener(e -> onProductoSeleccionado());
+        mainFormPanel.add(cmbProductos, gbc);
+
+        // Información del producto seleccionado
+        gbc.gridx = 0; gbc.gridy = 1; gbc.gridwidth = 4;
+        JPanel infoPanel = createInfoProductoPanel();
+        mainFormPanel.add(infoPanel, gbc);
+
+        // Cantidad solicitada
+        gbc.gridx = 0; gbc.gridy = 2;
+        JLabel lblCantidad = new JLabel("Cantidad a Solicitar:");
+        lblCantidad.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lblCantidad.setForeground(TEXT_WHITE);
+        mainFormPanel.add(lblCantidad, gbc);
+
+        gbc.gridx = 1; gbc.gridy = 2;
+        txtCantidadSolicitada = new ModernTextField("Ingrese la cantidad");
+        txtCantidadSolicitada.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+            public void insertUpdate(javax.swing.event.DocumentEvent e) { calcularCostoTotal(); }
+            public void removeUpdate(javax.swing.event.DocumentEvent e) { calcularCostoTotal(); }
+            public void changedUpdate(javax.swing.event.DocumentEvent e) { calcularCostoTotal(); }
+        });
+        mainFormPanel.add(txtCantidadSolicitada, gbc);
+
+        // Costo unitario y total
+        gbc.gridx = 2; gbc.gridy = 2;
+        JLabel lblCostoUnit = new JLabel("Costo Unitario:");
+        lblCostoUnit.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lblCostoUnit.setForeground(TEXT_WHITE);
+        mainFormPanel.add(lblCostoUnit, gbc);
+
+        gbc.gridx = 3; gbc.gridy = 2;
+        lblCostoUnitario = new JLabel("$0.00");
+        lblCostoUnitario.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lblCostoUnitario.setForeground(SUCCESS_COLOR);
+        mainFormPanel.add(lblCostoUnitario, gbc);
+
+        gbc.gridx = 2; gbc.gridy = 3;
+        JLabel lblCostoTotal = new JLabel("Costo Total:");
+        lblCostoTotal.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lblCostoTotal.setForeground(TEXT_WHITE);
+        mainFormPanel.add(lblCostoTotal, gbc);
+
+        gbc.gridx = 3; gbc.gridy = 3;
+        lblCostoTotal = new JLabel("$0.00");
+        lblCostoTotal.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        lblCostoTotal.setForeground(ACCENT_COLOR);
+        mainFormPanel.add(lblCostoTotal, gbc);
+
+        // Observaciones
+        gbc.gridx = 0; gbc.gridy = 4;
+        JLabel lblObservaciones = new JLabel("Observaciones:");
+        lblObservaciones.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lblObservaciones.setForeground(TEXT_WHITE);
+        mainFormPanel.add(lblObservaciones, gbc);
+
+        gbc.gridx = 1; gbc.gridy = 4; gbc.gridwidth = 3;
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.weighty = 1.0;
+        txtObservaciones = new JTextArea(3, 20);
+        txtObservaciones.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        txtObservaciones.setLineWrap(true);
+        txtObservaciones.setWrapStyleWord(true);
+        txtObservaciones.setBackground(new Color(50, 65, 95));
+        txtObservaciones.setForeground(TEXT_WHITE);
+        txtObservaciones.setCaretColor(TEXT_WHITE);
+        txtObservaciones.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER_COLOR, 1),
+                BorderFactory.createEmptyBorder(8, 12, 8, 12)
+        ));
+        JScrollPane scrollObservaciones = new JScrollPane(txtObservaciones);
+        scrollObservaciones.getViewport().setBackground(new Color(50, 65, 95));
+        mainFormPanel.add(scrollObservaciones, gbc);
+
+        // Botones
+        gbc.gridx = 0; gbc.gridy = 5; gbc.gridwidth = 4;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.weighty = 0.0;
+        gbc.insets = new Insets(20, 8, 8, 8);
+
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 0));
+        buttonPanel.setBackground(CARD_BACKGROUND);
+
+        btnSolicitar = new ModernButton("📞 Enviar Solicitud", SUCCESS_COLOR);
+        btnSolicitar.addActionListener(e -> enviarSolicitud());
+
+        btnLimpiar = new ModernButton("🧹 Limpiar Formulario", new Color(149, 165, 166));
+        btnLimpiar.addActionListener(e -> limpiarFormulario());
+
+        buttonPanel.add(btnSolicitar);
+        buttonPanel.add(btnLimpiar);
+
+        mainFormPanel.add(buttonPanel, gbc);
+
+        formPanel.add(mainFormPanel, BorderLayout.CENTER);
+
+        return formPanel;
+    }
+
+    private JPanel createInfoProductoPanel() {
+        JPanel infoPanel = new JPanel(new GridLayout(2, 2, 10, 5));
+        infoPanel.setBackground(new Color(35, 65, 100));
+        infoPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(ACCENT_COLOR, 2),
+                BorderFactory.createEmptyBorder(10, 15, 10, 15)
+        ));
+
+        // Producto seleccionado
+        JLabel lblProductoTitulo = new JLabel("Producto Seleccionado:");
+        lblProductoTitulo.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        lblProductoTitulo.setForeground(TEXT_WHITE);
+
+        lblProductoSeleccionado = new JLabel("Ninguno");
+        lblProductoSeleccionado.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        lblProductoSeleccionado.setForeground(ACCENT_COLOR);
+
+        // Stock actual
+        JLabel lblStockTitulo = new JLabel("Stock Actual en Bodega:");
+        lblStockTitulo.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        lblStockTitulo.setForeground(TEXT_WHITE);
+
+        lblStockActual = new JLabel("0 unidades");
+        lblStockActual.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        lblStockActual.setForeground(WARNING_COLOR);
+
+        infoPanel.add(lblProductoTitulo);
+        infoPanel.add(lblProductoSeleccionado);
+        infoPanel.add(lblStockTitulo);
+        infoPanel.add(lblStockActual);
+
+        return infoPanel;
+    }
+
+    private JPanel createTablePanel() {
+        JPanel tablePanel = new JPanel(new BorderLayout());
+        tablePanel.setBackground(CARD_BACKGROUND);
+        tablePanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createTitledBorder(
+                        BorderFactory.createLineBorder(SECONDARY_COLOR, 2),
+                        "Productos que Necesitan Reabastecimiento",
+                        0, 0,
+                        new Font("Segoe UI", Font.BOLD, 14),
+                        TEXT_WHITE
+                ),
+                BorderFactory.createEmptyBorder(20, 20, 20, 20)
+        ));
+
+        // Modelo de tabla
+        String[] columnNames = {
+                "ID", "Producto", "Proveedor", "Stock Actual", "Stock Mínimo",
+                "Déficit", "Costo Unitario", "Prioridad"
+        };
+
+        tableModel = new DefaultTableModel(columnNames, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
                 return false;
             }
-        };
-        tblInventario.setModel(tableModelInventario);
 
-        // Tabla de pedidos pendientes (lista temporal)
-        tableModelPedidosPendientes = new DefaultTableModel(
-                new Object[][]{},
-                new String[]{"ID", "Producto", "Cantidad", "Unidad", "Stock Disponible"}
-        ) {
             @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
+            public Class<?> getColumnClass(int columnIndex) {
+                return switch (columnIndex) {
+                    case 0 -> Integer.class; // ID
+                    case 3, 4, 5 -> Double.class; // Stocks
+                    case 6 -> Double.class; // Costo
+                    default -> String.class;
+                };
             }
         };
-        tblPedidosPendientes.setModel(tableModelPedidosPendientes);
 
-        // Tabla de pedidos enviados
-        tableModelPedidosEnviados = new DefaultTableModel(
-                new Object[][]{},
-                new String[]{"ID", "Producto", "Cantidad", "Fecha", "Estado", "Observaciones"}
-        ) {
+        productosTable = new JTable(tableModel);
+
+        // Configurar tabla
+        productosTable.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        productosTable.setRowHeight(35);
+        productosTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        productosTable.setIntercellSpacing(new Dimension(0, 0));
+        productosTable.setShowGrid(false);
+        productosTable.setBackground(new Color(50, 65, 95));
+        productosTable.setForeground(TEXT_WHITE);
+        productosTable.setGridColor(BORDER_COLOR);
+        productosTable.setSelectionBackground(ACCENT_COLOR);
+        productosTable.setSelectionForeground(TEXT_WHITE);
+
+        // Header personalizado
+        JTableHeader header = productosTable.getTableHeader();
+        header.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        header.setBackground(PRIMARY_COLOR);
+        header.setForeground(TEXT_WHITE);
+        header.setPreferredSize(new Dimension(header.getWidth(), 40));
+
+        // Anchos de columnas
+        productosTable.getColumnModel().getColumn(0).setPreferredWidth(60);  // ID
+        productosTable.getColumnModel().getColumn(1).setPreferredWidth(150); // Producto
+        productosTable.getColumnModel().getColumn(2).setPreferredWidth(120); // Proveedor
+        productosTable.getColumnModel().getColumn(3).setPreferredWidth(100); // Stock Actual
+        productosTable.getColumnModel().getColumn(4).setPreferredWidth(100); // Stock Mínimo
+        productosTable.getColumnModel().getColumn(5).setPreferredWidth(80);  // Déficit
+        productosTable.getColumnModel().getColumn(6).setPreferredWidth(100); // Costo
+        productosTable.getColumnModel().getColumn(7).setPreferredWidth(100); // Prioridad
+
+        // Renderers personalizados
+        productosTable.getColumnModel().getColumn(5).setCellRenderer((TableCellRenderer) new DeficitRenderer());
+        productosTable.getColumnModel().getColumn(7).setCellRenderer((TableCellRenderer) new PrioridadRenderer());
+
+        // Listener para selección
+        productosTable.getSelectionModel().addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting() && productosTable.getSelectedRow() != -1) {
+                cargarProductoDesdeTabla();
+            }
+        });
+
+        JScrollPane scrollPane = new JScrollPane(productosTable);
+        scrollPane.setBorder(BorderFactory.createLineBorder(BORDER_COLOR, 1));
+        scrollPane.getViewport().setBackground(new Color(50, 65, 95));
+
+        // Panel de información
+        JPanel infoPanel = new JPanel(new BorderLayout());
+        infoPanel.setBackground(CARD_BACKGROUND);
+        infoPanel.setBorder(BorderFactory.createEmptyBorder(10, 0, 0, 0));
+
+        JLabel infoLabel = new JLabel("💡 Haga clic en un producto de la tabla para cargarlo automáticamente en el formulario");
+        infoLabel.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        infoLabel.setForeground(new Color(180, 200, 255));
+
+        infoPanel.add(infoLabel, BorderLayout.CENTER);
+
+        tablePanel.add(scrollPane, BorderLayout.CENTER);
+        tablePanel.add(infoPanel, BorderLayout.SOUTH);
+
+        return tablePanel;
+    }
+
+    private void loadProductosParaReabastecer() {
+        SwingWorker<List<Producto>, Void> worker = new SwingWorker<List<Producto>, Void>() {
             @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
+            protected List<Producto> doInBackground() throws Exception {
+                return bodegaController.getProductosParaReabastecer();
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    List<Producto> productos = get();
+                    tableModel.setRowCount(0);
+
+                    for (Producto producto : productos) {
+                        double deficit = producto.getCantidadMinimaBodega() - producto.getStockBodega();
+                        String prioridad = calcularPrioridad(producto.getStockBodega(), producto.getCantidadMinimaBodega());
+
+                        Object[] row = {
+                                producto.getProductoId(),
+                                producto.getNombre(),
+                                producto.getProveedorNombre(),
+                                producto.getStockBodega(),
+                                producto.getCantidadMinimaBodega(),
+                                Math.max(0, deficit), // No mostrar números negativos
+                                producto.getCosto(),
+                                prioridad
+                        };
+                        tableModel.addRow(row);
+                    }
+
+                    showSuccess("Se cargaron " + productos.size() + " productos que necesitan reabastecimiento");
+
+                } catch (Exception e) {
+                    showError("Error al cargar productos: " + e.getMessage());
+                }
             }
         };
-        tblPedidosEnviados.setModel(tableModelPedidosEnviados);
+
+        worker.execute();
     }
 
-    private void loadAllData() {
-        loadInventarioBodega();
-        loadPedidosEnviados();
-        updateEstadisticas();
-    }
-
-    private void loadInventarioBodega() {
-        try {
-            tableModelInventario.setRowCount(0);
-            List<Producto> inventario = pedidoController.getInventarioBodega();
-
-            for (Producto producto : inventario) {
-                boolean disponible = producto.getStockBodega() > 0;
-
-                tableModelInventario.addRow(new Object[]{
-                        producto.getProductoId(),
-                        producto.getNombre(),
-                        StockUtils.formatCantidad(producto.getStockBodega()),
-                        StockUtils.formatCantidad(producto.getCantidadMinimaBodega()),
-                        producto.getUnidadMedida(),
-                        disponible ? "SÍ" : "NO"
-                });
+    private void loadProductosComboBox() {
+        SwingWorker<List<Producto>, Void> worker = new SwingWorker<List<Producto>, Void>() {
+            @Override
+            protected List<Producto> doInBackground() throws Exception {
+                return bodegaController.getAllProductos();
             }
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(this,
-                    "Error al cargar inventario: " + e.getMessage(),
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE);
-        }
-    }
 
-    private void loadPedidosEnviados() {
-        try {
-            tableModelPedidosEnviados.setRowCount(0);
-            List<PedidoBodega> pedidos = pedidoController.getPedidosEnviados(usuarioActualId);
+            @Override
+            protected void done() {
+                try {
+                    List<Producto> productos = get();
+                    cmbProductos.removeAllItems();
+                    cmbProductos.addItem("-- Seleccione un producto --");
 
-            for (PedidoBodega pedido : pedidos) {
-                tableModelPedidosEnviados.addRow(new Object[]{
-                        pedido.getPedidoId(),
-                        pedido.getProductoNombre(),
-                        StockUtils.formatCantidad(pedido.getCantidadSolicitada()) + " " + pedido.getUnidadMedida(),
-                        DateUtils.formatDateForDisplay(new java.sql.Date(pedido.getFechaSolicitud().getTime())),
-                        pedido.getEstado().toUpperCase(),
-                        pedido.getObservaciones()
-                });
+                    for (Producto producto : productos) {
+                        cmbProductos.addItem(producto.getProductoId() + " - " + producto.getNombre());
+                    }
+
+                } catch (Exception e) {
+                    showError("Error al cargar productos: " + e.getMessage());
+                }
             }
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(this,
-                    "Error al cargar pedidos enviados: " + e.getMessage(),
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE);
+        };
+
+        worker.execute();
+    }
+
+    private void onProductoSeleccionado() {
+        String selected = (String) cmbProductos.getSelectedItem();
+        if (selected != null && !selected.equals("-- Seleccione un producto --")) {
+            int productoId = Integer.parseInt(selected.split(" - ")[0]);
+            cargarProductoPorId(productoId);
+        } else {
+            limpiarInformacionProducto();
         }
     }
 
-    private void updateEstadisticas() {
-        try {
-            String estadisticas = pedidoController.getEstadisticasPedidos(usuarioActualId);
-            lblTotal.setText(estadisticas);
-        } catch (Exception e) {
-            lblTotal.setText("Error al cargar estadísticas");
-        }
-    }
-
-    private void buscarInventario() {
-        try {
-            String searchTerm = txtBuscarBodega.getText().trim();
-            tableModelInventario.setRowCount(0);
-
-            List<Producto> inventario = pedidoController.searchInventarioBodega(searchTerm);
-
-            for (Producto producto : inventario) {
-                boolean disponible = producto.getStockBodega() > 0;
-
-                tableModelInventario.addRow(new Object[]{
-                        producto.getProductoId(),
-                        producto.getNombre(),
-                        StockUtils.formatCantidad(producto.getStockBodega()),
-                        StockUtils.formatCantidad(producto.getCantidadMinimaBodega()),
-                        producto.getUnidadMedida(),
-                        disponible ? "SÍ" : "NO"
-                });
+    private void cargarProductoPorId(int productoId) {
+        SwingWorker<Producto, Void> worker = new SwingWorker<Producto, Void>() {
+            @Override
+            protected Producto doInBackground() throws Exception {
+                List<Producto> productos = bodegaController.getAllProductos();
+                return productos.stream()
+                        .filter(p -> p.getProductoId() == productoId)
+                        .findFirst()
+                        .orElse(null);
             }
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(this,
-                    "Error al buscar inventario: " + e.getMessage(),
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE);
-        }
-    }
 
-    private void buscarPedidosEnviados() {
-        try {
-            String searchTerm = txtBuscarPeticiones.getText().trim();
-            tableModelPedidosEnviados.setRowCount(0);
-
-            List<PedidoBodega> pedidos = pedidoController.searchPedidos(searchTerm, usuarioActualId);
-
-            for (PedidoBodega pedido : pedidos) {
-                tableModelPedidosEnviados.addRow(new Object[]{
-                        pedido.getPedidoId(),
-                        pedido.getProductoNombre(),
-                        StockUtils.formatCantidad(pedido.getCantidadSolicitada()) + " " + pedido.getUnidadMedida(),
-                        DateUtils.formatDateForDisplay(new java.sql.Date(pedido.getFechaSolicitud().getTime())),
-                        pedido.getEstado().toUpperCase(),
-                        pedido.getObservaciones()
-                });
+            @Override
+            protected void done() {
+                try {
+                    Producto producto = get();
+                    if (producto != null) {
+                        productoSeleccionado = producto;
+                        actualizarInformacionProducto();
+                    }
+                } catch (Exception e) {
+                    showError("Error al cargar producto: " + e.getMessage());
+                }
             }
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(this,
-                    "Error al buscar pedidos: " + e.getMessage(),
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE);
+        };
+
+        worker.execute();
+    }
+
+    private void cargarProductoDesdeTabla() {
+        int selectedRow = productosTable.getSelectedRow();
+        if (selectedRow != -1) {
+            int productoId = (int) tableModel.getValueAt(selectedRow, 0);
+            cargarProductoPorId(productoId);
+
+            // Seleccionar en el combobox
+            for (int i = 0; i < cmbProductos.getItemCount(); i++) {
+                if (cmbProductos.getItemAt(i).startsWith(productoId + " - ")) {
+                    cmbProductos.setSelectedIndex(i);
+                    break;
+                }
+            }
         }
     }
 
-    private void agregarPedidoLista() {
-        int selectedRow = tblInventario.getSelectedRow();
-        if (selectedRow == -1) {
-            JOptionPane.showMessageDialog(this,
-                    "Seleccione un producto del inventario",
-                    "Advertencia",
-                    JOptionPane.WARNING_MESSAGE);
+    private void actualizarInformacionProducto() {
+        if (productoSeleccionado != null) {
+            lblProductoSeleccionado.setText(productoSeleccionado.getNombre());
+            lblStockActual.setText(String.format("%.2f %s",
+                    productoSeleccionado.getStockBodega(),
+                    productoSeleccionado.getUnidadMedida()));
+
+            lblCostoUnitario.setText(String.format("$%.2f",
+                    productoSeleccionado.getCosto().doubleValue()));
+
+            // Actualizar colores según stock
+            if (productoSeleccionado.getStockBodega() <= 0) {
+                lblStockActual.setForeground(DANGER_COLOR);
+            } else if (productoSeleccionado.getStockBodega() <= productoSeleccionado.getCantidadMinimaBodega()) {
+                lblStockActual.setForeground(WARNING_COLOR);
+            } else {
+                lblStockActual.setForeground(SUCCESS_COLOR);
+            }
+
+            calcularCostoTotal();
+        }
+    }
+
+    private void limpiarInformacionProducto() {
+        productoSeleccionado = null;
+        lblProductoSeleccionado.setText("Ninguno");
+        lblStockActual.setText("0 unidades");
+        lblCostoUnitario.setText("$0.00");
+        lblCostoTotal.setText("$0.00");
+        txtCantidadSolicitada.setText("Ingrese la cantidad");
+        txtObservaciones.setText("");
+    }
+
+    private void calcularCostoTotal() {
+        if (productoSeleccionado != null) {
+            try {
+                String cantidadStr = txtCantidadSolicitada.getText();
+                if (!cantidadStr.equals("Ingrese la cantidad") && !cantidadStr.isEmpty()) {
+                    double cantidad = Double.parseDouble(cantidadStr);
+                    double costoTotal = cantidad * productoSeleccionado.getCosto().doubleValue();
+                    lblCostoTotal.setText(String.format("$%.2f", costoTotal));
+                } else {
+                    lblCostoTotal.setText("$0.00");
+                }
+            } catch (NumberFormatException e) {
+                lblCostoTotal.setText("$0.00");
+            }
+        }
+    }
+
+    private void filterTableData() {
+        // Implementación simple de filtrado
+        String searchText = txtSearch.getText().toLowerCase();
+        for (int i = 0; i < tableModel.getRowCount(); i++) {
+            String producto = tableModel.getValueAt(i, 1).toString().toLowerCase();
+            boolean visible = producto.contains(searchText);
+            ((javax.swing.table.DefaultTableModel)tableModel).fireTableRowsUpdated(i, i);
+        }
+    }
+
+    private void enviarSolicitud() {
+        if (productoSeleccionado == null) {
+            showError("Debe seleccionar un producto");
+            return;
+        }
+
+        String cantidadStr = txtCantidadSolicitada.getText();
+        if (cantidadStr.equals("Ingrese la cantidad") || cantidadStr.isEmpty()) {
+            showError("Debe ingresar la cantidad a solicitar");
+            txtCantidadSolicitada.requestFocus();
             return;
         }
 
         try {
-            int productoId = (int) tableModelInventario.getValueAt(selectedRow, 0);
-            String productoNombre = (String) tableModelInventario.getValueAt(selectedRow, 1);
-            double stockBodega = Double.parseDouble(
-                    ((String) tableModelInventario.getValueAt(selectedRow, 2)).replace(",", "")
-            );
-            String unidad = (String) tableModelInventario.getValueAt(selectedRow, 4);
-
-            // Verificar stock disponible
-            if (stockBodega <= 0) {
-                JOptionPane.showMessageDialog(this,
-                        "No hay stock disponible para: " + productoNombre,
-                        "Stock no disponible",
-                        JOptionPane.WARNING_MESSAGE);
+            double cantidad = Double.parseDouble(cantidadStr);
+            if (cantidad <= 0) {
+                showError("La cantidad debe ser mayor a 0");
                 return;
             }
 
-            String cantidadStr = JOptionPane.showInputDialog(this,
-                    "Cantidad a solicitar de: " + productoNombre + "\n" +
-                            "Stock disponible: " + stockBodega + " " + unidad + "\n" +
-                            "Unidad: " + unidad,
-                    "Solicitar Producto",
-                    JOptionPane.QUESTION_MESSAGE);
-
-            if (cantidadStr != null && !cantidadStr.trim().isEmpty()) {
-                double cantidad = Double.parseDouble(cantidadStr);
-
-                // Validar cantidad
-                if (cantidad <= 0) {
-                    JOptionPane.showMessageDialog(this,
-                            "La cantidad debe ser mayor a 0",
-                            "Error",
-                            JOptionPane.ERROR_MESSAGE);
-                    return;
-                }
-
-                if (cantidad > stockBodega) {
-                    JOptionPane.showMessageDialog(this,
-                            "La cantidad solicitada excede el stock disponible\n" +
-                                    "Solicitado: " + cantidad + " | Disponible: " + stockBodega,
-                            "Stock insuficiente",
-                            JOptionPane.WARNING_MESSAGE);
-                    return;
-                }
-
-                // Agregar a la lista temporal
-                tableModelPedidosPendientes.addRow(new Object[]{
-                        productoId,
-                        productoNombre,
-                        StockUtils.formatCantidad(cantidad),
-                        unidad,
-                        StockUtils.formatCantidad(stockBodega)
-                });
-
-                JOptionPane.showMessageDialog(this,
-                        "Producto agregado a la lista de pedidos",
-                        "Éxito",
-                        JOptionPane.INFORMATION_MESSAGE);
+            String observaciones = txtObservaciones.getText().trim();
+            if (observaciones.isEmpty()) {
+                observaciones = "Solicitud automática de reabastecimiento";
             }
-        } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(this,
-                    "La cantidad debe ser un número válido",
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE);
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(this,
-                    "Error al agregar producto: " + e.getMessage(),
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE);
-        }
-    }
 
-    private void enviarPedidos() {
-        if (tableModelPedidosPendientes.getRowCount() == 0) {
-            JOptionPane.showMessageDialog(this,
-                    "No hay pedidos en la lista para enviar",
-                    "Advertencia",
-                    JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-
-        try {
+            // Mostrar confirmación
             int confirm = JOptionPane.showConfirmDialog(this,
-                    "¿Confirmar envío de " + tableModelPedidosPendientes.getRowCount() + " pedido(s)?",
-                    "Confirmar Envío",
+                    "<html><div style='text-align: center; padding: 10px;'>" +
+                            "<div style='background: #2C3E50; padding: 15px; border-radius: 8px; border-left: 4px solid #3498DB;'>" +
+                            "<div style='color: #FFFFFF; font-weight: bold; margin-bottom: 10px;'>📞 Confirmar Solicitud</div>" +
+                            "<div style='color: #ECF0F1; text-align: left;'>" +
+                            "<p><b>Producto:</b> " + productoSeleccionado.getNombre() + "</p>" +
+                            "<p><b>Cantidad:</b> " + cantidad + " " + productoSeleccionado.getUnidadMedida() + "</p>" +
+                            "<p><b>Costo Total:</b> " + lblCostoTotal.getText() + "</p>" +
+                            "<p><b>Proveedor:</b> " + productoSeleccionado.getProveedorNombre() + "</p>" +
+                            "</div>" +
+                            "</div>" +
+                            "</div></html>",
+                    "Confirmar Solicitud",
                     JOptionPane.YES_NO_OPTION,
                     JOptionPane.QUESTION_MESSAGE);
 
             if (confirm == JOptionPane.YES_OPTION) {
-                boolean todosEnviados = true;
-                int pedidosEnviados = 0;
+                btnSolicitar.setText("Enviando...");
+                btnSolicitar.setEnabled(false);
 
-                for (int i = 0; i < tableModelPedidosPendientes.getRowCount(); i++) {
-                    int productoId = (int) tableModelPedidosPendientes.getValueAt(i, 0);
-                    String productoNombre = (String) tableModelPedidosPendientes.getValueAt(i, 1);
-                    double cantidad = Double.parseDouble(
-                            ((String) tableModelPedidosPendientes.getValueAt(i, 2)).replace(",", "")
-                    );
+                String finalObservaciones = observaciones;
+                SwingWorker<Boolean, Void> worker = new SwingWorker<Boolean, Void>() {
+                    @Override
+                    protected Boolean doInBackground() throws Exception {
+                        return bodegaController.crearSolicitudCompra(
+                                productoSeleccionado.getProductoId(),
+                                cantidad,
+                                finalObservaciones
+                        );
+                    }
 
-                    String observaciones = JOptionPane.showInputDialog(this,
-                            "Observaciones para: " + productoNombre,
-                            "Observaciones del Pedido",
-                            JOptionPane.QUESTION_MESSAGE);
-
-                    if (observaciones != null) {
-                        boolean success = pedidoController.crearPedidoBodega(
-                                productoId, usuarioActualId, cantidad, observaciones);
-
-                        if (success) {
-                            pedidosEnviados++;
-                        } else {
-                            todosEnviados = false;
+                    @Override
+                    protected void done() {
+                        try {
+                            boolean success = get();
+                            if (success) {
+                                showSuccess("Solicitud enviada exitosamente al proveedor");
+                                limpiarFormulario();
+                                loadProductosParaReabastecer();
+                            } else {
+                                showError("Error al enviar la solicitud");
+                            }
+                        } catch (Exception e) {
+                            showError("Error: " + e.getMessage());
+                        } finally {
+                            btnSolicitar.setText("📞 Enviar Solicitud");
+                            btnSolicitar.setEnabled(true);
                         }
-                    } else {
-                        todosEnviados = false;
-                        break;
+                    }
+                };
+
+                worker.execute();
+            }
+
+        } catch (NumberFormatException e) {
+            showError("Ingrese una cantidad válida");
+            txtCantidadSolicitada.requestFocus();
+        }
+    }
+
+    private void limpiarFormulario() {
+        cmbProductos.setSelectedIndex(0);
+        limpiarInformacionProducto();
+        productosTable.clearSelection();
+    }
+
+    private String calcularPrioridad(double stockActual, double stockMinimo) {
+        double porcentaje = (stockActual / stockMinimo) * 100;
+        if (porcentaje <= 0) return "🔴 CRÍTICA";
+        else if (porcentaje <= 50) return "🟡 ALTA";
+        else if (porcentaje <= 100) return "🟠 MEDIA";
+        else return "🟢 BAJA";
+    }
+
+    private void setupModernDesign() {
+        getRootPane().setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER_COLOR, 1),
+                BorderFactory.createEmptyBorder(2, 2, 2, 2)
+        ));
+    }
+
+    private void centrarEnDesktop() {
+        try {
+            com.mycompany.licoreria.Licoreria.centrarFormulario(this);
+        } catch (Exception e) {
+            // Si falla el centrado, continuar sin él
+        }
+    }
+
+    // Métodos de utilidad para mensajes (actualizados)
+    private void showError(String message) {
+        JOptionPane.showMessageDialog(this,
+                "<html><div style='text-align: center; padding: 10px;'>" +
+                        "<div style='background: #2C3E50; padding: 15px; border-radius: 8px; border-left: 4px solid #E74C3C;'>" +
+                        "<div style='color: #FFFFFF; font-weight: bold; margin-bottom: 5px;'>❌ Error</div>" +
+                        "<div style='color: #ECF0F1;'>" + message + "</div>" +
+                        "</div>" +
+                        "</div></html>",
+                "Error",
+                JOptionPane.ERROR_MESSAGE);
+    }
+
+    private void showSuccess(String message) {
+        JOptionPane.showMessageDialog(this,
+                "<html><div style='text-align: center; padding: 10px;'>" +
+                        "<div style='background: #2C3E50; padding: 15px; border-radius: 8px; border-left: 4px solid #27AE60;'>" +
+                        "<div style='color: #FFFFFF; font-weight: bold; margin-bottom: 5px;'>✅ Éxito</div>" +
+                        "<div style='color: #ECF0F1;'>" + message + "</div>" +
+                        "</div>" +
+                        "</div></html>",
+                "Éxito",
+                JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    // Clases internas para componentes modernos con tema azul
+    class ModernTextField extends JTextField {
+        private String placeholder;
+
+        public ModernTextField(String placeholder) {
+            this.placeholder = placeholder;
+            setFont(new Font("Segoe UI", Font.PLAIN, 14));
+            setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(BORDER_COLOR, 1),
+                    BorderFactory.createEmptyBorder(10, 15, 10, 15)
+            ));
+            setBackground(new Color(50, 65, 95));
+            setForeground(TEXT_WHITE);
+            setCaretColor(TEXT_WHITE);
+            setOpaque(true);
+
+            addFocusListener(new FocusAdapter() {
+                @Override
+                public void focusGained(FocusEvent e) {
+                    if (getText().equals(placeholder)) {
+                        setText("");
+                        setForeground(TEXT_WHITE);
                     }
                 }
 
-                if (todosEnviados) {
-                    JOptionPane.showMessageDialog(this,
-                            pedidosEnviados + " pedido(s) enviados exitosamente",
-                            "Éxito",
-                            JOptionPane.INFORMATION_MESSAGE);
-                    // Limpiar lista temporal
-                    tableModelPedidosPendientes.setRowCount(0);
-                    loadPedidosEnviados();
-                    updateEstadisticas();
+                @Override
+                public void focusLost(FocusEvent e) {
+                    if (getText().isEmpty()) {
+                        setText(placeholder);
+                        setForeground(new Color(200, 220, 255));
+                    }
+                }
+            });
+
+            setText(placeholder);
+            setForeground(new Color(200, 220, 255));
+        }
+    }
+
+    class ModernComboBox extends JComboBox<String> {
+        public ModernComboBox() {
+            setFont(new Font("Segoe UI", Font.PLAIN, 14));
+            setBackground(new Color(50, 65, 95));
+            setForeground(TEXT_WHITE);
+            setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(BORDER_COLOR, 1),
+                    BorderFactory.createEmptyBorder(8, 12, 8, 12)
+            ));
+            setRenderer(new ModernComboBoxRenderer());
+        }
+    }
+
+    class ModernComboBoxRenderer extends DefaultListCellRenderer {
+        @Override
+        public Component getListCellRendererComponent(JList<?> list, Object value, int index,
+                                                      boolean isSelected, boolean cellHasFocus) {
+            JLabel label = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+            label.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+            label.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
+
+            if (isSelected) {
+                label.setBackground(ACCENT_COLOR);
+                label.setForeground(TEXT_WHITE);
+            } else {
+                label.setBackground(new Color(50, 65, 95));
+                label.setForeground(TEXT_WHITE);
+            }
+
+            return label;
+        }
+    }
+
+    class ModernButton extends JButton {
+        private Color originalColor;
+
+        public ModernButton(String text, Color color) {
+            super(text);
+            this.originalColor = color;
+
+            setFont(new Font("Segoe UI", Font.BOLD, 12));
+            setBackground(color);
+            setForeground(TEXT_WHITE);
+            setFocusPainted(false);
+            setBorderPainted(false);
+            setCursor(new Cursor(Cursor.HAND_CURSOR));
+            setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
+
+            addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseEntered(MouseEvent e) {
+                    if (isEnabled()) {
+                        setBackground(originalColor.darker());
+                    }
+                }
+
+                @Override
+                public void mouseExited(MouseEvent e) {
+                    if (isEnabled()) {
+                        setBackground(originalColor);
+                    }
+                }
+            });
+        }
+    }
+
+    class DeficitRenderer extends DefaultTableCellRenderer {
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value,
+                                                       boolean isSelected, boolean hasFocus,
+                                                       int row, int column) {
+            JLabel label = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+            label.setHorizontalAlignment(SwingConstants.RIGHT);
+            label.setFont(new Font("Segoe UI", Font.BOLD, 11));
+            label.setBackground(new Color(50, 65, 95));
+            label.setForeground(TEXT_WHITE);
+
+            if (value instanceof Double) {
+                double deficit = (Double) value;
+                if (deficit > 0) {
+                    label.setForeground(DANGER_COLOR);
+                    label.setText("+" + String.format("%.2f", deficit));
                 } else {
-                    JOptionPane.showMessageDialog(this,
-                            "Algunos pedidos no pudieron ser enviados",
-                            "Error parcial",
-                            JOptionPane.WARNING_MESSAGE);
+                    label.setForeground(SUCCESS_COLOR);
+                    label.setText(String.format("%.2f", deficit));
                 }
             }
-        } catch (IllegalArgumentException e) {
-            JOptionPane.showMessageDialog(this,
-                    e.getMessage(),
-                    "Error de validación",
-                    JOptionPane.ERROR_MESSAGE);
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(this,
-                    "Error al enviar pedidos: " + e.getMessage(),
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE);
+
+            if (isSelected) {
+                label.setBackground(ACCENT_COLOR);
+            }
+
+            return label;
         }
     }
 
-    private void eliminarPedidoLista() {
-        int selectedRow = tblPedidosPendientes.getSelectedRow();
-        if (selectedRow == -1) {
-            JOptionPane.showMessageDialog(this,
-                    "Seleccione un pedido de la lista para eliminar",
-                    "Advertencia",
-                    JOptionPane.WARNING_MESSAGE);
-            return;
-        }
+    class PrioridadRenderer extends DefaultTableCellRenderer {
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value,
+                                                       boolean isSelected, boolean hasFocus,
+                                                       int row, int column) {
+            JLabel label = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+            label.setHorizontalAlignment(SwingConstants.CENTER);
+            label.setFont(new Font("Segoe UI", Font.BOLD, 11));
+            label.setOpaque(true);
+            label.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
 
-        int confirm = JOptionPane.showConfirmDialog(this,
-                "¿Eliminar este pedido de la lista?",
-                "Confirmar Eliminación",
-                JOptionPane.YES_NO_OPTION,
-                JOptionPane.QUESTION_MESSAGE);
-
-        if (confirm == JOptionPane.YES_OPTION) {
-            tableModelPedidosPendientes.removeRow(selectedRow);
-        }
-    }
-
-    private void eliminarPedidoEnviado() {
-        int selectedRow = tblPedidosEnviados.getSelectedRow();
-        if (selectedRow == -1) {
-            JOptionPane.showMessageDialog(this,
-                    "Seleccione un pedido enviado para eliminar",
-                    "Advertencia",
-                    JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-
-        try {
-            int pedidoId = (int) tableModelPedidosEnviados.getValueAt(selectedRow, 0);
-            String productoNombre = (String) tableModelPedidosEnviados.getValueAt(selectedRow, 1);
-            String estado = (String) tableModelPedidosEnviados.getValueAt(selectedRow, 4);
-
-            // Solo se pueden cancelar pedidos pendientes
-            if (!"PENDIENTE".equals(estado)) {
-                JOptionPane.showMessageDialog(this,
-                        "Solo se pueden cancelar pedidos en estado PENDIENTE",
-                        "No se puede cancelar",
-                        JOptionPane.WARNING_MESSAGE);
-                return;
+            String prioridad = (String) value;
+            if (prioridad.contains("CRÍTICA")) {
+                label.setBackground(new Color(255, 118, 117, 50));
+                label.setForeground(DANGER_COLOR);
+            } else if (prioridad.contains("ALTA")) {
+                label.setBackground(new Color(255, 193, 87, 50));
+                label.setForeground(WARNING_COLOR);
+            } else if (prioridad.contains("MEDIA")) {
+                label.setBackground(new Color(255, 168, 87, 50));
+                label.setForeground(new Color(255, 140, 0));
+            } else {
+                label.setBackground(new Color(86, 202, 133, 50));
+                label.setForeground(SUCCESS_COLOR);
             }
 
-            int confirm = JOptionPane.showConfirmDialog(this,
-                    "¿Cancelar pedido de: " + productoNombre + "?",
-                    "Confirmar Cancelación",
-                    JOptionPane.YES_NO_OPTION,
-                    JOptionPane.WARNING_MESSAGE);
+            label.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(label.getForeground(), 1),
+                    BorderFactory.createEmptyBorder(4, 9, 4, 9)
+            ));
 
-            if (confirm == JOptionPane.YES_OPTION) {
-                boolean success = pedidoController.eliminarPedido(pedidoId, usuarioActualId);
-
-                if (success) {
-                    JOptionPane.showMessageDialog(this,
-                            "Pedido cancelado exitosamente",
-                            "Éxito",
-                            JOptionPane.INFORMATION_MESSAGE);
-                    loadPedidosEnviados();
-                    updateEstadisticas();
-                } else {
-                    JOptionPane.showMessageDialog(this,
-                            "Error al cancelar el pedido",
-                            "Error",
-                            JOptionPane.ERROR_MESSAGE);
-                }
+            if (isSelected) {
+                label.setBackground(label.getBackground().darker());
             }
-        } catch (IllegalArgumentException e) {
-            JOptionPane.showMessageDialog(this,
-                    e.getMessage(),
-                    "Error de validación",
-                    JOptionPane.ERROR_MESSAGE);
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(this,
-                    "Error al eliminar pedido: " + e.getMessage(),
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE);
+
+            return label;
         }
     }
 
-    @SuppressWarnings("unchecked")
-    // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
-    private void initComponents() {
+    // Clase para el fondo con gradiente
+    class GradientPanel extends JPanel {
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            Graphics2D g2d = (Graphics2D) g;
+            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
 
-        jScrollPane1 = new javax.swing.JScrollPane();
-        tblInventario = new javax.swing.JTable();
-        jLabel1 = new javax.swing.JLabel();
-        txtBuscarBodega = new javax.swing.JTextField();
-        btnPedir = new javax.swing.JButton();
-        jScrollPane2 = new javax.swing.JScrollPane();
-        tblPedidosPendientes = new javax.swing.JTable();
-        jLabel2 = new javax.swing.JLabel();
-        btnEnviar = new javax.swing.JButton();
-        btnEliminarLista = new javax.swing.JButton();
-        btnEliminarInventario = new javax.swing.JButton();
-        jScrollPane3 = new javax.swing.JScrollPane();
-        tblPedidosEnviados = new javax.swing.JTable();
-        btnEliminarEnviado = new javax.swing.JButton();
-        txtBuscarPeticiones = new javax.swing.JTextField();
-        jLabel3 = new javax.swing.JLabel();
-        jLabel4 = new javax.swing.JLabel();
-        jLabel5 = new javax.swing.JLabel();
-        lblTotal = new javax.swing.JLabel();
-        btnRefrescar = new javax.swing.JButton();
+            // Gradiente azul oscuro moderno
+            GradientPaint gradient = new GradientPaint(
+                    0, 0, new Color(30, 40, 60),
+                    getWidth(), getHeight(), new Color(50, 70, 100)
+            );
+            g2d.setPaint(gradient);
+            g2d.fillRect(0, 0, getWidth(), getHeight());
 
-        setClosable(true);
-        setIconifiable(true);
-        setMaximizable(true);
-        setResizable(true);
-        setTitle("Solicitar Productos a Bodega");
-
-        tblInventario.setModel(new javax.swing.table.DefaultTableModel(
-                new Object [][] {
-                        {null, null, null, null},
-                        {null, null, null, null},
-                        {null, null, null, null},
-                        {null, null, null, null}
-                },
-                new String [] {
-                        "Title 1", "Title 2", "Title 3", "Title 4"
-                }
-        ));
-        jScrollPane1.setViewportView(tblInventario);
-
-        jLabel1.setFont(new java.awt.Font("Liberation Sans", 0, 24)); // NOI18N
-        jLabel1.setText("LISTA DE PEDIDOS");
-
-        txtBuscarBodega.setFont(new java.awt.Font("Liberation Sans", 0, 14)); // NOI18N
-        txtBuscarBodega.setText("Buscar en Bodega...");
-        txtBuscarBodega.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                txtBuscarBodegaActionPerformed(evt);
-            }
-        });
-
-        btnPedir.setBackground(new java.awt.Color(102, 255, 102));
-        btnPedir.setFont(new java.awt.Font("Liberation Sans", 1, 14)); // NOI18N
-        btnPedir.setText("AGREGAR A LISTA");
-        btnPedir.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btnPedirActionPerformed(evt);
-            }
-        });
-
-        tblPedidosPendientes.setModel(new javax.swing.table.DefaultTableModel(
-                new Object [][] {
-                        {null, null, null, null},
-                        {null, null, null, null},
-                        {null, null, null, null},
-                        {null, null, null, null}
-                },
-                new String [] {
-                        "Title 1", "Title 2", "Title 3", "Title 4"
-                }
-        ));
-        jScrollPane2.setViewportView(tblPedidosPendientes);
-
-        jLabel2.setFont(new java.awt.Font("Liberation Sans", 0, 24)); // NOI18N
-        jLabel2.setText("INVENTARIO BODEGA");
-
-        btnEnviar.setBackground(new java.awt.Color(102, 255, 102));
-        btnEnviar.setFont(new java.awt.Font("Liberation Sans", 1, 14)); // NOI18N
-        btnEnviar.setText("ENVIAR PEDIDOS");
-        btnEnviar.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btnEnviarActionPerformed(evt);
-            }
-        });
-
-        btnEliminarLista.setBackground(new java.awt.Color(255, 0, 51));
-        btnEliminarLista.setFont(new java.awt.Font("Liberation Sans", 1, 14)); // NOI18N
-        btnEliminarLista.setText("ELIMINAR DE LISTA");
-        btnEliminarLista.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btnEliminarListaActionPerformed(evt);
-            }
-        });
-
-        btnEliminarInventario.setBackground(new java.awt.Color(255, 0, 51));
-        btnEliminarInventario.setFont(new java.awt.Font("Liberation Sans", 1, 14)); // NOI18N
-        btnEliminarInventario.setText("LIMPIAR BÚSQUEDA");
-        btnEliminarInventario.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btnEliminarInventarioActionPerformed(evt);
-            }
-        });
-
-        tblPedidosEnviados.setModel(new javax.swing.table.DefaultTableModel(
-                new Object [][] {
-                        {null, null, null, null},
-                        {null, null, null, null},
-                        {null, null, null, null},
-                        {null, null, null, null}
-                },
-                new String [] {
-                        "Title 1", "Title 2", "Title 3", "Title 4"
-                }
-        ));
-        jScrollPane3.setViewportView(tblPedidosEnviados);
-
-        btnEliminarEnviado.setBackground(new java.awt.Color(255, 0, 51));
-        btnEliminarEnviado.setFont(new java.awt.Font("Liberation Sans", 1, 14)); // NOI18N
-        btnEliminarEnviado.setText("CANCELAR PEDIDO");
-        btnEliminarEnviado.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btnEliminarEnviadoActionPerformed(evt);
-            }
-        });
-
-        txtBuscarPeticiones.setFont(new java.awt.Font("Liberation Sans", 0, 14)); // NOI18N
-        txtBuscarPeticiones.setText("Buscar en Peticiones...");
-        txtBuscarPeticiones.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                txtBuscarPeticionesActionPerformed(evt);
-            }
-        });
-
-        jLabel3.setFont(new java.awt.Font("Liberation Sans", 0, 24)); // NOI18N
-        jLabel3.setText("PEDIDOS ENVIADOS");
-
-        jLabel4.setFont(new java.awt.Font("Liberation Sans", 0, 24)); // NOI18N
-        jLabel4.setText("TOTAL:");
-
-        jLabel5.setFont(new java.awt.Font("Liberation Sans", 0, 18)); // NOI18N
-        jLabel5.setText("Estadísticas:");
-
-        lblTotal.setFont(new java.awt.Font("Liberation Sans", 0, 14)); // NOI18N
-        lblTotal.setText("Cargando estadísticas...");
-
-        btnRefrescar.setFont(new java.awt.Font("Liberation Sans", 1, 14)); // NOI18N
-        btnRefrescar.setText("REFRESCAR");
-        btnRefrescar.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btnRefrescarActionPerformed(evt);
-            }
-        });
-
-        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
-        getContentPane().setLayout(layout);
-        layout.setHorizontalGroup(
-                layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                        .addGroup(layout.createSequentialGroup()
-                                .addGap(23, 23, 23)
-                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                        .addGroup(layout.createSequentialGroup()
-                                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                                        .addComponent(jLabel3)
-                                                        .addComponent(btnEliminarEnviado, javax.swing.GroupLayout.PREFERRED_SIZE, 180, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                                        .addComponent(txtBuscarPeticiones, javax.swing.GroupLayout.PREFERRED_SIZE, 201, javax.swing.GroupLayout.PREFERRED_SIZE))
-                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                                                .addComponent(jScrollPane3, javax.swing.GroupLayout.DEFAULT_SIZE, 784, Short.MAX_VALUE))
-                                        .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                                                .addGap(0, 0, Short.MAX_VALUE)
-                                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                                        .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                                                                .addComponent(jLabel5)
-                                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                                                .addComponent(lblTotal, javax.swing.GroupLayout.PREFERRED_SIZE, 600, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                                                .addComponent(btnRefrescar, javax.swing.GroupLayout.PREFERRED_SIZE, 120, javax.swing.GroupLayout.PREFERRED_SIZE))
-                                                        .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                                                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                                                                        .addComponent(jLabel2)
-                                                                        .addGroup(layout.createSequentialGroup()
-                                                                                .addComponent(txtBuscarBodega, javax.swing.GroupLayout.PREFERRED_SIZE, 188, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                                                                                .addComponent(btnPedir, javax.swing.GroupLayout.PREFERRED_SIZE, 160, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                                                                .addGap(18, 18, 18)
-                                                                                .addComponent(btnEliminarInventario, javax.swing.GroupLayout.PREFERRED_SIZE, 160, javax.swing.GroupLayout.PREFERRED_SIZE))
-                                                                        .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 0, Short.MAX_VALUE))
-                                                                .addGap(81, 81, 81)
-                                                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                                                        .addComponent(btnEliminarLista, javax.swing.GroupLayout.PREFERRED_SIZE, 160, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                                                        .addComponent(btnEnviar, javax.swing.GroupLayout.PREFERRED_SIZE, 160, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                                                        .addComponent(jLabel4))
-                                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                                                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                                                        .addComponent(jLabel1)
-                                                                        .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 439, javax.swing.GroupLayout.PREFERRED_SIZE))))))
-                                .addGap(29, 29, 29))
-        );
-        layout.setVerticalGroup(
-                layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                        .addGroup(layout.createSequentialGroup()
-                                .addGap(26, 26, 26)
-                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                                        .addComponent(jLabel2)
-                                        .addComponent(jLabel1)
-                                        .addComponent(jLabel4))
-                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                        .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                                                        .addGroup(layout.createSequentialGroup()
-                                                                .addComponent(btnEliminarLista, javax.swing.GroupLayout.PREFERRED_SIZE, 41, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                                                                .addComponent(btnEnviar, javax.swing.GroupLayout.PREFERRED_SIZE, 41, javax.swing.GroupLayout.PREFERRED_SIZE))
-                                                        .addGroup(layout.createSequentialGroup()
-                                                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                                                                        .addComponent(jLabel5)
-                                                                        .addComponent(lblTotal)
-                                                                        .addComponent(btnRefrescar, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE))
-                                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                                                .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 313, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                                                .addGap(20, 20, 20))
-                                        .addGroup(layout.createSequentialGroup()
-                                                .addGap(18, 18, 18)
-                                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                                                        .addComponent(btnPedir, javax.swing.GroupLayout.PREFERRED_SIZE, 41, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                                        .addComponent(btnEliminarInventario, javax.swing.GroupLayout.PREFERRED_SIZE, 41, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                                        .addComponent(txtBuscarBodega, javax.swing.GroupLayout.PREFERRED_SIZE, 41, javax.swing.GroupLayout.PREFERRED_SIZE))
-                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 313, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                                .addGap(18, 18, Short.MAX_VALUE)))
-                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                                        .addGroup(layout.createSequentialGroup()
-                                                .addComponent(jLabel3)
-                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                                .addComponent(txtBuscarPeticiones, javax.swing.GroupLayout.PREFERRED_SIZE, 41, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                                .addComponent(btnEliminarEnviado, javax.swing.GroupLayout.PREFERRED_SIZE, 41, javax.swing.GroupLayout.PREFERRED_SIZE))
-                                        .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, 293, javax.swing.GroupLayout.PREFERRED_SIZE))
-                                .addGap(0, 20, Short.MAX_VALUE))
-        );
-
-        pack();
-    }// </editor-fold>//GEN-END:initComponents
-
-    private void txtBuscarBodegaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txtBuscarBodegaActionPerformed
-        buscarInventario();
-    }//GEN-LAST:event_txtBuscarBodegaActionPerformed
-
-    private void txtBuscarPeticionesActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txtBuscarPeticionesActionPerformed
-        buscarPedidosEnviados();
-    }//GEN-LAST:event_txtBuscarPeticionesActionPerformed
-
-    private void btnEliminarInventarioActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnEliminarInventarioActionPerformed
-        // Limpiar búsqueda
-        txtBuscarBodega.setText("");
-        loadInventarioBodega();
-    }//GEN-LAST:event_btnEliminarInventarioActionPerformed
-
-    private void btnPedirActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnPedirActionPerformed
-        agregarPedidoLista();
-    }//GEN-LAST:event_btnPedirActionPerformed
-
-    private void btnEnviarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnEnviarActionPerformed
-        enviarPedidos();
-    }//GEN-LAST:event_btnEnviarActionPerformed
-
-    private void btnEliminarListaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnEliminarListaActionPerformed
-        eliminarPedidoLista();
-    }//GEN-LAST:event_btnEliminarListaActionPerformed
-
-    private void btnEliminarEnviadoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnEliminarEnviadoActionPerformed
-        eliminarPedidoEnviado();
-    }//GEN-LAST:event_btnEliminarEnviadoActionPerformed
-
-    private void btnRefrescarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnRefrescarActionPerformed
-        loadAllData();
-    }//GEN-LAST:event_btnRefrescarActionPerformed
-
-    // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JButton btnEliminarEnviado;
-    private javax.swing.JButton btnEliminarInventario;
-    private javax.swing.JButton btnEliminarLista;
-    private javax.swing.JButton btnEnviar;
-    private javax.swing.JButton btnPedir;
-    private javax.swing.JButton btnRefrescar;
-    private javax.swing.JLabel jLabel1;
-    private javax.swing.JLabel jLabel2;
-    private javax.swing.JLabel jLabel3;
-    private javax.swing.JLabel jLabel4;
-    private javax.swing.JLabel jLabel5;
-    private javax.swing.JScrollPane jScrollPane1;
-    private javax.swing.JScrollPane jScrollPane2;
-    private javax.swing.JScrollPane jScrollPane3;
-    private javax.swing.JLabel lblTotal;
-    private javax.swing.JTable tblInventario;
-    private javax.swing.JTable tblPedidosEnviados;
-    private javax.swing.JTable tblPedidosPendientes;
-    private javax.swing.JTextField txtBuscarBodega;
-    private javax.swing.JTextField txtBuscarPeticiones;
-    // End of variables declaration//GEN-END:variables
+            // Elementos decorativos sutiles
+            g2d.setColor(new Color(255, 255, 255, 10));
+            g2d.fillOval(-50, -50, 150, 150);
+            g2d.fillOval(getWidth() - 100, getHeight() - 100, 200, 200);
+        }
+    }
 }

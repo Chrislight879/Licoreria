@@ -156,4 +156,12 @@ public class VentaRapidaController {
             return "F-0001";
         }
     }
+
+    public List<Producto> getProductosParaVenta() {
+        return List.of();
+    }
+
+    public List<Producto> buscarProductos(String searchTerm) {
+        return List.of();
+    }
 }

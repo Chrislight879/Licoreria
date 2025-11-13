@@ -1,856 +1,854 @@
 package com.mycompany.licoreria.formularios;
 
+import com.mycompany.licoreria.Licoreria;
+import com.mycompany.licoreria.controllers.VentaRapidaController;
+import com.mycompany.licoreria.controllers.PeticionVendedorController;
 import com.mycompany.licoreria.controllers.VentaController;
 import com.mycompany.licoreria.models.Producto;
-import com.mycompany.licoreria.models.DetalleVenta;
+import com.mycompany.licoreria.models.PeticionVendedor;
 import com.mycompany.licoreria.models.Venta;
 import com.mycompany.licoreria.utils.SessionManager;
-import com.mycompany.licoreria.utils.StockUtils;
-import com.mycompany.licoreria.utils.DateUtils;
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
-import javax.swing.JOptionPane;
+import javax.swing.*;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableCellRenderer;
+import java.awt.*;
+import java.awt.event.*;
+import java.math.BigDecimal;
+import java.util.List;
 
-public class VendedorMainForm extends javax.swing.JInternalFrame {
+public class VendedorMainForm extends JInternalFrame {
+    private VentaRapidaController ventaRapidaController;
+    private PeticionVendedorController peticionController;
     private VentaController ventaController;
-    private DefaultTableModel tableModelProductos;
-    private DefaultTableModel tableModelCarrito;
-    private DefaultTableModel tableModelVentas;
-    private DefaultTableModel tableModelStockBajo;
-    private List<DetalleVenta> carrito;
-    private int usuarioId;
+
+    // Componentes UI
+    private JTabbedPane tabbedPane;
+    private JLabel lblStatsVentas, lblStatsPeticiones, lblStatsStock;
+    private JTable tableVentasHoy, tablePeticionesActivas, tableStockBajo;
+    private DefaultTableModel modelVentas, modelPeticiones, modelStock;
+
+    // Paleta de colores azules mejorada con mejor contraste
+    private final Color PRIMARY_COLOR = new Color(70, 130, 180); // SteelBlue - azul principal
+    private final Color SECONDARY_COLOR = new Color(100, 149, 237); // CornflowerBlue - azul claro
+    private final Color ACCENT_COLOR = new Color(30, 144, 255); // DodgerBlue - azul brillante
+    private final Color BACKGROUND_COLOR = new Color(30, 40, 60); // Azul oscuro para fondo
+    private final Color CARD_BACKGROUND = new Color(40, 55, 80); // Azul medio para tarjetas
+    private final Color BORDER_COLOR = new Color(100, 130, 180); // Borde azul
+    private final Color TEXT_WHITE = Color.WHITE; // TODOS LOS TEXTOS EN BLANCO
+    private final Color SUCCESS_COLOR = new Color(86, 202, 133); // Verde azulado para éxitos
+    private final Color WARNING_COLOR = new Color(255, 193, 87); // Amarillo dorado para advertencias
+    private final Color DANGER_COLOR = new Color(255, 118, 117); // Rojo coral para peligros
 
     public VendedorMainForm() {
         initComponents();
+        ventaRapidaController = new VentaRapidaController();
+        peticionController = new PeticionVendedorController();
         ventaController = new VentaController();
-        carrito = new ArrayList<>();
-        usuarioId = SessionManager.getCurrentUser() != null ?
-                SessionManager.getCurrentUser().getUsuarioId() : 1; // Default si no hay sesión
-        initializeTables();
-        loadAllData();
-        setTitle("Módulo de Vendedor - Punto de Venta");
+
+        cargarDashboard();
+        iniciarActualizacionAutomatica();
     }
 
-    private void initializeTables() {
-        // Tabla de productos disponibles
-        tableModelProductos = new DefaultTableModel(
-                new Object[][]{},
-                new String[]{"ID", "Producto", "Precio", "Stock", "Unidad"}
-        ) {
+    private void initComponents() {
+        setTitle("👨‍💼 Módulo Completo de Vendedor");
+        setClosable(true);
+        setResizable(true);
+        setMaximizable(true);
+        setIconifiable(true);
+        setDefaultCloseOperation(JInternalFrame.DISPOSE_ON_CLOSE);
+
+        setSize(1200, 800);
+        setLayout(new BorderLayout());
+
+        JPanel mainPanel = new GradientPanel();
+        mainPanel.setLayout(new BorderLayout());
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        mainPanel.add(createHeaderPanel(), BorderLayout.NORTH);
+        mainPanel.add(createCenterPanel(), BorderLayout.CENTER);
+        mainPanel.add(createFooterPanel(), BorderLayout.SOUTH);
+
+        add(mainPanel);
+    }
+
+    private JPanel createHeaderPanel() {
+        JPanel headerPanel = new JPanel(new BorderLayout());
+        headerPanel.setBackground(new Color(0, 0, 0, 0));
+        headerPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER_COLOR, 1),
+                BorderFactory.createEmptyBorder(20, 20, 20, 20)
+        ));
+
+        // Información del usuario
+        JPanel userPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        userPanel.setBackground(new Color(0, 0, 0, 0));
+
+        JLabel userIcon = new JLabel("👤");
+        userIcon.setFont(new Font("Segoe UI", Font.PLAIN, 24));
+        userIcon.setForeground(TEXT_WHITE);
+
+        JLabel userInfo = new JLabel("<html><b style='color: white;'>" +
+                SessionManager.getCurrentUser().getUsername() + "</b><br>" +
+                SessionManager.getCurrentUser().getRolTitulo() + "</html>");
+        userInfo.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        userInfo.setForeground(TEXT_WHITE);
+
+        userPanel.add(userIcon);
+        userPanel.add(userInfo);
+
+        // Título
+        JLabel titleLabel = new JLabel("PANEL PRINCIPAL - VENDEDOR");
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 24));
+        titleLabel.setForeground(TEXT_WHITE);
+        titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
+
+        // Panel de estadísticas rápidas
+        JPanel statsPanel = new JPanel(new GridLayout(1, 3, 15, 0));
+        statsPanel.setBackground(new Color(0, 0, 0, 0));
+
+        lblStatsVentas = createStatCard("0", "Ventas Hoy", "💰", new Color(70, 130, 180));
+        lblStatsPeticiones = createStatCard("0", "Peticiones Activas", "📨", new Color(65, 105, 225));
+        lblStatsStock = createStatCard("0", "Stock Bajo", "⚠️", new Color(255, 165, 0));
+
+        statsPanel.add(lblStatsVentas);
+        statsPanel.add(lblStatsPeticiones);
+        statsPanel.add(lblStatsStock);
+
+        headerPanel.add(userPanel, BorderLayout.WEST);
+        headerPanel.add(titleLabel, BorderLayout.CENTER);
+        headerPanel.add(statsPanel, BorderLayout.EAST);
+
+        return headerPanel;
+    }
+
+    private JPanel createCenterPanel() {
+        JPanel centerPanel = new JPanel(new BorderLayout());
+        centerPanel.setBackground(new Color(0, 0, 0, 0));
+
+        tabbedPane = new JTabbedPane();
+        tabbedPane.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        tabbedPane.setBackground(CARD_BACKGROUND);
+        tabbedPane.setForeground(TEXT_WHITE);
+
+        // Personalizar el color de las pestañas
+        tabbedPane.setUI(new javax.swing.plaf.basic.BasicTabbedPaneUI() {
             @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
-        };
-        tblProductos.setModel(tableModelProductos);
-
-        // Tabla del carrito de compras
-        tableModelCarrito = new DefaultTableModel(
-                new Object[][]{},
-                new String[]{"Producto", "Cantidad", "Precio Unit.", "Subtotal", "Quitar"}
-        ) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return column == 1; // Solo la cantidad es editable
-            }
-        };
-        tblCarrito.setModel(tableModelCarrito);
-
-        // Tabla de historial de ventas
-        tableModelVentas = new DefaultTableModel(
-                new Object[][]{},
-                new String[]{"ID Venta", "Fecha", "Cliente", "Total", "Detalles"}
-        ) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
-        };
-        tblVentas.setModel(tableModelVentas);
-
-        // Tabla de productos con stock bajo
-        tableModelStockBajo = new DefaultTableModel(
-                new Object[][]{},
-                new String[]{"ID", "Producto", "Stock Actual", "Mínimo", "Solicitar"}
-        ) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return column == 4; // Solo la columna de solicitar es editable
-            }
-        };
-        tblStockBajo.setModel(tableModelStockBajo);
-    }
-
-    private void loadAllData() {
-        loadProductos();
-        loadHistorialVentas();
-        loadProductosStockBajo();
-        updateEstadisticas();
-        updateTotalCarrito();
-    }
-
-    private void loadProductos() {
-        try {
-            tableModelProductos.setRowCount(0);
-            List<Producto> productos = ventaController.getProductosParaVenta();
-
-            for (Producto producto : productos) {
-                tableModelProductos.addRow(new Object[]{
-                        producto.getProductoId(),
-                        producto.getNombre(),
-                        "$" + producto.getPrecio(),
-                        StockUtils.formatCantidad(producto.getStockVendedor()),
-                        producto.getUnidadMedida()
-                });
-            }
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(this,
-                    "Error al cargar productos: " + e.getMessage(),
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE);
-        }
-    }
-
-    private void loadHistorialVentas() {
-        try {
-            tableModelVentas.setRowCount(0);
-            List<Venta> ventas = ventaController.getHistorialVentas(usuarioId);
-
-            for (Venta venta : ventas) {
-                tableModelVentas.addRow(new Object[]{
-                        venta.getVentaId(),
-                        DateUtils.formatDateForDisplay(new java.sql.Date(venta.getFechaVenta().getTime())),
-                        venta.getCliente(),
-                        "$" + venta.getTotal(),
-                        "Ver Detalles"
-                });
-            }
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(this,
-                    "Error al cargar historial: " + e.getMessage(),
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE);
-        }
-    }
-
-    private void loadProductosStockBajo() {
-        try {
-            tableModelStockBajo.setRowCount(0);
-            List<Producto> productos = ventaController.getProductosStockBajo();
-
-            for (Producto producto : productos) {
-                tableModelStockBajo.addRow(new Object[]{
-                        producto.getProductoId(),
-                        producto.getNombre(),
-                        StockUtils.formatCantidad(producto.getStockVendedor()),
-                        StockUtils.formatCantidad(producto.getCantidadMinimaVendedor()),
-                        "SOLICITAR"
-                });
-            }
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(this,
-                    "Error al cargar stock bajo: " + e.getMessage(),
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE);
-        }
-    }
-
-    private void updateEstadisticas() {
-        try {
-            String estadisticas = ventaController.getEstadisticas(usuarioId);
-            lblEstadisticas.setText(estadisticas);
-        } catch (Exception e) {
-            lblEstadisticas.setText("Error al cargar estadísticas");
-        }
-    }
-
-    private void buscarProductos() {
-        try {
-            String searchTerm = txtBuscarProducto.getText().trim();
-            tableModelProductos.setRowCount(0);
-
-            List<Producto> productos = ventaController.buscarProductos(searchTerm);
-
-            for (Producto producto : productos) {
-                tableModelProductos.addRow(new Object[]{
-                        producto.getProductoId(),
-                        producto.getNombre(),
-                        "$" + producto.getPrecio(),
-                        StockUtils.formatCantidad(producto.getStockVendedor()),
-                        producto.getUnidadMedida()
-                });
-            }
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(this,
-                    "Error al buscar productos: " + e.getMessage(),
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE);
-        }
-    }
-
-    private void agregarAlCarrito() {
-        int selectedRow = tblProductos.getSelectedRow();
-        if (selectedRow == -1) {
-            JOptionPane.showMessageDialog(this,
-                    "Seleccione un producto para agregar al carrito",
-                    "Advertencia",
-                    JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-
-        try {
-            int productoId = (int) tableModelProductos.getValueAt(selectedRow, 0);
-            String productoNombre = (String) tableModelProductos.getValueAt(selectedRow, 1);
-            BigDecimal precio = new BigDecimal(
-                    ((String) tableModelProductos.getValueAt(selectedRow, 2)).replace("$", "")
-            );
-            double stockDisponible = Double.parseDouble(
-                    ((String) tableModelProductos.getValueAt(selectedRow, 3)).replace(",", "")
-            );
-
-            // Pedir cantidad
-            String cantidadStr = JOptionPane.showInputDialog(this,
-                    "Agregar al carrito:\n\n" +
-                            "Producto: " + productoNombre + "\n" +
-                            "Precio: " + precio + "\n" +
-                            "Stock disponible: " + stockDisponible + "\n\n" +
-                            "Ingrese la cantidad:",
-                    "Agregar al Carrito",
-                    JOptionPane.QUESTION_MESSAGE);
-
-            if (cantidadStr != null && !cantidadStr.trim().isEmpty()) {
-                double cantidad = Double.parseDouble(cantidadStr);
-
-                // Validar stock
-                if (cantidad <= 0) {
-                    JOptionPane.showMessageDialog(this,
-                            "La cantidad debe ser mayor a 0",
-                            "Error",
-                            JOptionPane.ERROR_MESSAGE);
-                    return;
-                }
-
-                if (cantidad > stockDisponible) {
-                    JOptionPane.showMessageDialog(this,
-                            "Stock insuficiente. Disponible: " + stockDisponible,
-                            "Error",
-                            JOptionPane.ERROR_MESSAGE);
-                    return;
-                }
-
-                // Crear detalle y agregar al carrito
-                DetalleVenta detalle = new DetalleVenta(productoId, cantidad, precio);
-                detalle.setProductoNombre(productoNombre);
-                carrito.add(detalle);
-
-                // Actualizar tabla del carrito
-                actualizarCarrito();
-
-                JOptionPane.showMessageDialog(this,
-                        "Producto agregado al carrito",
-                        "Éxito",
-                        JOptionPane.INFORMATION_MESSAGE);
-            }
-        } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(this,
-                    "La cantidad debe ser un número válido",
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE);
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(this,
-                    "Error al agregar al carrito: " + e.getMessage(),
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE);
-        }
-    }
-
-    private void actualizarCarrito() {
-        tableModelCarrito.setRowCount(0);
-
-        for (int i = 0; i < carrito.size(); i++) {
-            DetalleVenta detalle = carrito.get(i);
-            tableModelCarrito.addRow(new Object[]{
-                    detalle.getProductoNombre(),
-                    detalle.getCantidad(),
-                    "$" + detalle.getPrecioUnitario(),
-                    "$" + detalle.getSubTotal(),
-                    "QUITAR"
-            });
-        }
-
-        updateTotalCarrito();
-    }
-
-    private void updateTotalCarrito() {
-        BigDecimal total = carrito.stream()
-                .map(DetalleVenta::getSubTotal)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        lblTotalVenta.setText("Total: $" + total);
-    }
-
-    private void procesarVenta() {
-        if (carrito.isEmpty()) {
-            JOptionPane.showMessageDialog(this,
-                    "El carrito está vacío",
-                    "Advertencia",
-                    JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-
-        try {
-            String cliente = txtCliente.getText().trim();
-            if (cliente.isEmpty()) {
-                cliente = "CLIENTE GENERAL";
-            }
-
-            int confirm = JOptionPane.showConfirmDialog(this,
-                    "¿Confirmar venta?\n\n" +
-                            "Cliente: " + cliente + "\n" +
-                            "Total: " + lblTotalVenta.getText() + "\n" +
-                            "Items: " + carrito.size(),
-                    "Confirmar Venta",
-                    JOptionPane.YES_NO_OPTION,
-                    JOptionPane.QUESTION_MESSAGE);
-
-            if (confirm == JOptionPane.YES_OPTION) {
-                boolean success = ventaController.procesarVenta(cliente, usuarioId, carrito);
-
-                if (success) {
-                    JOptionPane.showMessageDialog(this,
-                            "Venta procesada exitosamente",
-                            "Éxito",
-                            JOptionPane.INFORMATION_MESSAGE);
-
-                    // Limpiar carrito y formulario
-                    carrito.clear();
-                    actualizarCarrito();
-                    txtCliente.setText("");
-                    loadAllData();
+            protected void paintTabBackground(Graphics g, int tabPlacement, int tabIndex,
+                                              int x, int y, int w, int h, boolean isSelected) {
+                if (isSelected) {
+                    g.setColor(ACCENT_COLOR);
                 } else {
-                    JOptionPane.showMessageDialog(this,
-                            "Error al procesar la venta",
-                            "Error",
-                            JOptionPane.ERROR_MESSAGE);
+                    g.setColor(CARD_BACKGROUND);
                 }
+                g.fillRect(x, y, w, h);
             }
-        } catch (IllegalArgumentException e) {
-            JOptionPane.showMessageDialog(this,
-                    e.getMessage(),
-                    "Error de validación",
-                    JOptionPane.ERROR_MESSAGE);
+
+            @Override
+            protected void paintContentBorder(Graphics g, int tabPlacement, int selectedIndex) {
+                // No pintar borde del contenido
+            }
+        });
+
+        // Pestaña de Dashboard
+        tabbedPane.addTab("📊 Dashboard", createDashboardTab());
+
+        // Pestaña de Ventas Rápidas
+        tabbedPane.addTab("🛒 Venta Rápida", createVentaRapidaTab());
+
+        // Pestaña de Solicitudes
+        tabbedPane.addTab("📦 Solicitar Stock", createSolicitudesTab());
+
+        // Pestaña de Historial
+        tabbedPane.addTab("📋 Mi Historial", createHistorialTab());
+
+        centerPanel.add(tabbedPane, BorderLayout.CENTER);
+
+        return centerPanel;
+    }
+
+    private JPanel createDashboardTab() {
+        JPanel dashboardPanel = new JPanel(new GridLayout(2, 2, 15, 15));
+        dashboardPanel.setBackground(new Color(0, 0, 0, 0));
+        dashboardPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+
+        // Ventas de hoy
+        dashboardPanel.add(createDashboardCard("💰 Ventas del Día", createVentasHoyPanel(), SECONDARY_COLOR));
+
+        // Peticiones activas
+        dashboardPanel.add(createDashboardCard("📨 Mis Solicitudes", createPeticionesPanel(), PRIMARY_COLOR));
+
+        // Stock bajo
+        dashboardPanel.add(createDashboardCard("⚠️ Stock Bajo", createStockBajoPanel(), WARNING_COLOR));
+
+        // Acciones rápidas
+        dashboardPanel.add(createDashboardCard("🚀 Acciones Rápidas", createAccionesRapidasPanel(), ACCENT_COLOR));
+
+        return dashboardPanel;
+    }
+
+    private JPanel createVentaRapidaTab() {
+        JPanel ventaPanel = new JPanel(new BorderLayout());
+        ventaPanel.setBackground(CARD_BACKGROUND);
+        ventaPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        JLabel titleLabel = new JLabel("VENTA RÁPIDA - PUNTO DE VENTA");
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        titleLabel.setForeground(TEXT_WHITE);
+        titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        titleLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 20, 0));
+
+        // Panel de acceso al módulo de ventas
+        JPanel accessPanel = new JPanel(new GridBagLayout());
+        accessPanel.setBackground(CARD_BACKGROUND);
+
+        JLabel accessLabel = new JLabel("<html><div style='text-align: center; color: white;'>" +
+                "<h3 style='color: white;'>Módulo de Venta Rápida</h3>" +
+                "<p style='color: #E0E0E0;'>" +
+                "Acceda al sistema completo de punto de venta con todas las funcionalidades:</p>" +
+                "<ul style='text-align: left; color: #E0E0E0;'>" +
+                "<li>🛒 Carrito de compras interactivo</li>" +
+                "<li>🔍 Búsqueda en tiempo real</li>" +
+                "<li>💰 Cálculo automático de totales</li>" +
+                "<li>📦 Control de stock en tiempo real</li>" +
+                "<li>🧾 Generación de facturas</li>" +
+                "</ul>" +
+                "</div></html>");
+
+        JButton btnAbrirVenta = new ModernButton("🎯 Abrir Punto de Venta", ACCENT_COLOR);
+        btnAbrirVenta.setPreferredSize(new Dimension(200, 50));
+        btnAbrirVenta.addActionListener(e -> abrirPuntoVenta());
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0; gbc.gridy = 0;
+        gbc.insets = new Insets(0, 0, 20, 0);
+        accessPanel.add(accessLabel, gbc);
+
+        gbc.gridy = 1;
+        accessPanel.add(btnAbrirVenta, gbc);
+
+        ventaPanel.add(titleLabel, BorderLayout.NORTH);
+        ventaPanel.add(accessPanel, BorderLayout.CENTER);
+
+        return ventaPanel;
+    }
+
+    private JPanel createSolicitudesTab() {
+        JPanel solicitudesPanel = new JPanel(new BorderLayout());
+        solicitudesPanel.setBackground(CARD_BACKGROUND);
+        solicitudesPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        JLabel titleLabel = new JLabel("SOLICITUDES DE STOCK - BODEGA");
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        titleLabel.setForeground(TEXT_WHITE);
+        titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        titleLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 20, 0));
+
+        // Panel de acceso al módulo de solicitudes
+        JPanel accessPanel = new JPanel(new GridBagLayout());
+        accessPanel.setBackground(CARD_BACKGROUND);
+
+        JLabel accessLabel = new JLabel("<html><div style='text-align: center; color: white;'>" +
+                "<h3 style='color: white;'>Módulo de Solicitudes</h3>" +
+                "<p style='color: #E0E0E0;'>" +
+                "Gestión completa de solicitudes de stock a bodega:</p>" +
+                "<ul style='text-align: left; color: #E0E0E0;'>" +
+                "<li>📦 Visualización de stock en bodega</li>" +
+                "<li>📨 Envío de solicitudes</li>" +
+                "<li>📊 Seguimiento de estado</li>" +
+                "<li>❌ Cancelación de solicitudes pendientes</li>" +
+                "<li>🔔 Notificaciones de cambios</li>" +
+                "</ul>" +
+                "</div></html>");
+
+        JButton btnAbrirSolicitudes = new ModernButton("📨 Abrir Solicitudes", ACCENT_COLOR);
+        btnAbrirSolicitudes.setPreferredSize(new Dimension(200, 50));
+        btnAbrirSolicitudes.addActionListener(e -> abrirSolicitudes());
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0; gbc.gridy = 0;
+        gbc.insets = new Insets(0, 0, 20, 0);
+        accessPanel.add(accessLabel, gbc);
+
+        gbc.gridy = 1;
+        accessPanel.add(btnAbrirSolicitudes, gbc);
+
+        solicitudesPanel.add(titleLabel, BorderLayout.NORTH);
+        solicitudesPanel.add(accessPanel, BorderLayout.CENTER);
+
+        return solicitudesPanel;
+    }
+
+    private JPanel createHistorialTab() {
+        JPanel historialPanel = new JPanel(new BorderLayout());
+        historialPanel.setBackground(CARD_BACKGROUND);
+        historialPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        JLabel titleLabel = new JLabel("MI HISTORIAL - VENTAS Y SOLICITUDES");
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        titleLabel.setForeground(TEXT_WHITE);
+        titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        titleLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 20, 0));
+
+        // Panel de resumen de historial
+        JPanel resumenPanel = new JPanel(new GridLayout(1, 2, 15, 0));
+        resumenPanel.setBackground(CARD_BACKGROUND);
+
+        // Últimas ventas
+        JPanel ventasPanel = createHistorialCard("💰 Últimas Ventas", createUltimasVentasPanel(), SECONDARY_COLOR);
+
+        // Todas las solicitudes
+        JPanel peticionesPanel = createHistorialCard("📨 Todas mis Solicitudes", createTodasPeticionesPanel(), PRIMARY_COLOR);
+
+        resumenPanel.add(ventasPanel);
+        resumenPanel.add(peticionesPanel);
+
+        historialPanel.add(titleLabel, BorderLayout.NORTH);
+        historialPanel.add(resumenPanel, BorderLayout.CENTER);
+
+        return historialPanel;
+    }
+
+    private JPanel createFooterPanel() {
+        JPanel footerPanel = new JPanel(new BorderLayout());
+        footerPanel.setBackground(new Color(0, 0, 0, 0));
+        footerPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER_COLOR, 1),
+                BorderFactory.createEmptyBorder(10, 15, 10, 15)
+        ));
+
+        JLabel statusLabel = new JLabel("Sistema de Vendedor - Conectado");
+        statusLabel.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        statusLabel.setForeground(TEXT_WHITE);
+
+        JLabel updateLabel = new JLabel("Actualizado: " + new java.util.Date());
+        updateLabel.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        updateLabel.setForeground(TEXT_WHITE);
+
+        footerPanel.add(statusLabel, BorderLayout.WEST);
+        footerPanel.add(updateLabel, BorderLayout.EAST);
+
+        return footerPanel;
+    }
+
+    // Métodos para crear componentes del dashboard
+    private JLabel createStatCard(String value, String title, String icon, Color color) {
+        JLabel card = new JLabel("<html><div style='text-align: center; background: " +
+                String.format("#%02x%02x%02x", color.getRed(), color.getGreen(), color.getBlue()) +
+                "; padding: 15px; border-radius: 10px; color: white;'>" +
+                "<div style='font-size: 24px; margin-bottom: 5px;'>" + icon + "</div>" +
+                "<div style='font-size: 18px; font-weight: bold;'>" + value + "</div>" +
+                "<div style='font-size: 11px;'>" + title + "</div>" +
+                "</div></html>");
+        card.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        return card;
+    }
+
+    private JPanel createDashboardCard(String title, JComponent content, Color color) {
+        JPanel card = new JPanel(new BorderLayout());
+        card.setBackground(CARD_BACKGROUND);
+        card.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(color, 2),
+                BorderFactory.createEmptyBorder(10, 10, 10, 10)
+        ));
+
+        JLabel titleLabel = new JLabel(title);
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        titleLabel.setForeground(TEXT_WHITE);
+        titleLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
+
+        card.add(titleLabel, BorderLayout.NORTH);
+        card.add(content, BorderLayout.CENTER);
+
+        return card;
+    }
+
+    private JPanel createVentasHoyPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(CARD_BACKGROUND);
+
+        modelVentas = new DefaultTableModel(new Object[]{"Hora", "Cliente", "Total", "Items"}, 0) {
+            public boolean isCellEditable(int row, int column) { return false; }
+        };
+
+        tableVentasHoy = new JTable(modelVentas);
+        tableVentasHoy.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        tableVentasHoy.setRowHeight(25);
+        tableVentasHoy.setBackground(new Color(50, 65, 95));
+        tableVentasHoy.setForeground(TEXT_WHITE);
+        tableVentasHoy.setGridColor(BORDER_COLOR);
+        tableVentasHoy.setSelectionBackground(ACCENT_COLOR);
+        tableVentasHoy.setSelectionForeground(TEXT_WHITE);
+
+        // Personalizar header de la tabla
+        tableVentasHoy.getTableHeader().setBackground(PRIMARY_COLOR);
+        tableVentasHoy.getTableHeader().setForeground(TEXT_WHITE);
+        tableVentasHoy.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 11));
+
+        JScrollPane scrollPane = new JScrollPane(tableVentasHoy);
+        scrollPane.setPreferredSize(new Dimension(0, 120));
+        scrollPane.setBorder(BorderFactory.createLineBorder(BORDER_COLOR));
+        scrollPane.getViewport().setBackground(new Color(50, 65, 95));
+
+        panel.add(scrollPane, BorderLayout.CENTER);
+
+        return panel;
+    }
+
+    private JPanel createPeticionesPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(CARD_BACKGROUND);
+
+        modelPeticiones = new DefaultTableModel(new Object[]{"Producto", "Cantidad", "Estado", "Fecha"}, 0) {
+            public boolean isCellEditable(int row, int column) { return false; }
+        };
+
+        tablePeticionesActivas = new JTable(modelPeticiones);
+        tablePeticionesActivas.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        tablePeticionesActivas.setRowHeight(25);
+        tablePeticionesActivas.setBackground(new Color(50, 65, 95));
+        tablePeticionesActivas.setForeground(TEXT_WHITE);
+        tablePeticionesActivas.setGridColor(BORDER_COLOR);
+        tablePeticionesActivas.setSelectionBackground(ACCENT_COLOR);
+        tablePeticionesActivas.setSelectionForeground(TEXT_WHITE);
+        tablePeticionesActivas.setDefaultRenderer(Object.class, (TableCellRenderer) new EstadoPeticionRenderer());
+
+        // Personalizar header de la tabla
+        tablePeticionesActivas.getTableHeader().setBackground(PRIMARY_COLOR);
+        tablePeticionesActivas.getTableHeader().setForeground(TEXT_WHITE);
+        tablePeticionesActivas.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 11));
+
+        JScrollPane scrollPane = new JScrollPane(tablePeticionesActivas);
+        scrollPane.setPreferredSize(new Dimension(0, 120));
+        scrollPane.setBorder(BorderFactory.createLineBorder(BORDER_COLOR));
+        scrollPane.getViewport().setBackground(new Color(50, 65, 95));
+
+        panel.add(scrollPane, BorderLayout.CENTER);
+
+        return panel;
+    }
+
+    private JPanel createStockBajoPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(CARD_BACKGROUND);
+
+        modelStock = new DefaultTableModel(new Object[]{"Producto", "Stock Actual", "Mínimo", "Estado"}, 0) {
+            public boolean isCellEditable(int row, int column) { return false; }
+        };
+
+        tableStockBajo = new JTable(modelStock);
+        tableStockBajo.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        tableStockBajo.setRowHeight(25);
+        tableStockBajo.setBackground(new Color(50, 65, 95));
+        tableStockBajo.setForeground(TEXT_WHITE);
+        tableStockBajo.setGridColor(BORDER_COLOR);
+        tableStockBajo.setSelectionBackground(ACCENT_COLOR);
+        tableStockBajo.setSelectionForeground(TEXT_WHITE);
+        tableStockBajo.setDefaultRenderer(Object.class, (TableCellRenderer) new StockBajoRenderer());
+
+        // Personalizar header de la tabla
+        tableStockBajo.getTableHeader().setBackground(PRIMARY_COLOR);
+        tableStockBajo.getTableHeader().setForeground(TEXT_WHITE);
+        tableStockBajo.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 11));
+
+        JScrollPane scrollPane = new JScrollPane(tableStockBajo);
+        scrollPane.setPreferredSize(new Dimension(0, 120));
+        scrollPane.setBorder(BorderFactory.createLineBorder(BORDER_COLOR));
+        scrollPane.getViewport().setBackground(new Color(50, 65, 95));
+
+        panel.add(scrollPane, BorderLayout.CENTER);
+
+        return panel;
+    }
+
+    private JPanel createAccionesRapidasPanel() {
+        JPanel panel = new JPanel(new GridLayout(3, 1, 5, 5));
+        panel.setBackground(CARD_BACKGROUND);
+
+        JButton btnVentaRapida = new QuickActionButton("🛒 Nueva Venta", ACCENT_COLOR);
+        btnVentaRapida.addActionListener(e -> abrirPuntoVenta());
+
+        JButton btnSolicitarStock = new QuickActionButton("📦 Solicitar Stock", SECONDARY_COLOR);
+        btnSolicitarStock.addActionListener(e -> abrirSolicitudes());
+
+        JButton btnActualizar = new QuickActionButton("🔄 Actualizar Datos", PRIMARY_COLOR);
+        btnActualizar.addActionListener(e -> cargarDashboard());
+
+        panel.add(btnVentaRapida);
+        panel.add(btnSolicitarStock);
+        panel.add(btnActualizar);
+
+        return panel;
+    }
+
+    private JPanel createHistorialCard(String title, JComponent content, Color color) {
+        JPanel card = new JPanel(new BorderLayout());
+        card.setBackground(CARD_BACKGROUND);
+        card.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(color, 1),
+                BorderFactory.createEmptyBorder(10, 10, 10, 10)
+        ));
+
+        JLabel titleLabel = new JLabel(title);
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        titleLabel.setForeground(TEXT_WHITE);
+
+        card.add(titleLabel, BorderLayout.NORTH);
+        card.add(content, BorderLayout.CENTER);
+
+        return card;
+    }
+
+    private JPanel createUltimasVentasPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(CARD_BACKGROUND);
+
+        DefaultTableModel model = new DefaultTableModel(new Object[]{"Fecha", "Cliente", "Total"}, 0) {
+            public boolean isCellEditable(int row, int column) { return false; }
+        };
+
+        JTable table = new JTable(model);
+        table.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        table.setRowHeight(25);
+        table.setBackground(new Color(50, 65, 95));
+        table.setForeground(TEXT_WHITE);
+        table.setGridColor(BORDER_COLOR);
+        table.setSelectionBackground(ACCENT_COLOR);
+        table.setSelectionForeground(TEXT_WHITE);
+
+        // Personalizar header de la tabla
+        table.getTableHeader().setBackground(PRIMARY_COLOR);
+        table.getTableHeader().setForeground(TEXT_WHITE);
+        table.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 11));
+
+        // Cargar últimas ventas
+        try {
+            List<Venta> ventas = ventaController.getHistorialVentas(
+                    SessionManager.getCurrentUser().getUsuarioId()
+            );
+
+            for (Venta v : ventas) {
+                model.addRow(new Object[]{
+                        v.getFechaVenta(),
+                        v.getCliente(),
+                        "$" + v.getTotal()
+                });
+            }
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(this,
-                    "Error al procesar venta: " + e.getMessage(),
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE);
+            // Ignorar errores
+        }
+
+        JScrollPane scrollPane = new JScrollPane(table);
+        scrollPane.setBorder(BorderFactory.createLineBorder(BORDER_COLOR));
+        scrollPane.getViewport().setBackground(new Color(50, 65, 95));
+        panel.add(scrollPane, BorderLayout.CENTER);
+
+        return panel;
+    }
+
+    private JPanel createTodasPeticionesPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(CARD_BACKGROUND);
+
+        DefaultTableModel model = new DefaultTableModel(new Object[]{"Producto", "Cantidad", "Estado", "Fecha"}, 0) {
+            public boolean isCellEditable(int row, int column) { return false; }
+        };
+
+        JTable table = new JTable(model);
+        table.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        table.setRowHeight(25);
+        table.setBackground(new Color(50, 65, 95));
+        table.setForeground(TEXT_WHITE);
+        table.setGridColor(BORDER_COLOR);
+        table.setSelectionBackground(ACCENT_COLOR);
+        table.setSelectionForeground(TEXT_WHITE);
+        table.setDefaultRenderer(Object.class, (TableCellRenderer) new EstadoPeticionRenderer());
+
+        // Personalizar header de la tabla
+        table.getTableHeader().setBackground(PRIMARY_COLOR);
+        table.getTableHeader().setForeground(TEXT_WHITE);
+        table.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 11));
+
+        // Cargar todas las peticiones
+        try {
+            List<PeticionVendedor> peticiones = peticionController.getPeticionesPorVendedor(
+                    SessionManager.getCurrentUser().getUsuarioId()
+            );
+
+            for (PeticionVendedor p : peticiones) {
+                model.addRow(new Object[]{
+                        p.getProductoNombre(),
+                        p.getCantidadSolicitada(),
+                        p.getEstado(),
+                        p.getFechaSolicitud()
+                });
+            }
+        } catch (Exception e) {
+            // Ignorar errores
+        }
+
+        JScrollPane scrollPane = new JScrollPane(table);
+        scrollPane.setBorder(BorderFactory.createLineBorder(BORDER_COLOR));
+        scrollPane.getViewport().setBackground(new Color(50, 65, 95));
+        panel.add(scrollPane, BorderLayout.CENTER);
+
+        return panel;
+    }
+
+    // Métodos de negocio (sin cambios)
+    private void cargarDashboard() {
+        cargarEstadisticas();
+        cargarVentasHoy();
+        cargarPeticionesActivas();
+        cargarStockBajo();
+    }
+
+    private void cargarEstadisticas() {
+        try {
+            // Ventas hoy
+            List<Object[]> ventasHoy = ventaRapidaController.getVentasDelDia();
+            lblStatsVentas.setText(createStatCard(String.valueOf(ventasHoy.size()), "Ventas Hoy", "💰", new Color(70, 130, 180)).getText());
+
+            // Peticiones activas
+            List<PeticionVendedor> peticiones = peticionController.getPeticionesPendientes(
+                    SessionManager.getCurrentUser().getUsuarioId()
+            );
+            lblStatsPeticiones.setText(createStatCard(String.valueOf(peticiones.size()), "Peticiones Activas", "📨", new Color(65, 105, 225)).getText());
+
+            // Stock bajo
+            List<Producto> stockBajo = peticionController.getProductosStockBajoVendedor(
+                    SessionManager.getCurrentUser().getUsuarioId()
+            );
+            lblStatsStock.setText(createStatCard(String.valueOf(stockBajo.size()), "Stock Bajo", "⚠️", new Color(255, 165, 0)).getText());
+
+        } catch (Exception e) {
+            showError("Error al cargar estadísticas: " + e.getMessage());
         }
     }
 
-    private void solicitarStock() {
-        int selectedRow = tblStockBajo.getSelectedRow();
-        if (selectedRow == -1) {
-            JOptionPane.showMessageDialog(this,
-                    "Seleccione un producto para solicitar stock",
-                    "Advertencia",
-                    JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-
+    private void cargarVentasHoy() {
+        modelVentas.setRowCount(0);
         try {
-            int productoId = (int) tableModelStockBajo.getValueAt(selectedRow, 0);
-            String productoNombre = (String) tableModelStockBajo.getValueAt(selectedRow, 1);
-            double stockActual = Double.parseDouble(
-                    ((String) tableModelStockBajo.getValueAt(selectedRow, 2)).replace(",", "")
+            List<Object[]> ventas = ventaRapidaController.getVentasDelDia();
+            for (Object[] venta : ventas) {
+                modelVentas.addRow(new Object[]{
+                        venta[1], // Fecha
+                        venta[2], // Cliente
+                        venta[3], // Total
+                        venta[5]  // Items
+                });
+            }
+        } catch (Exception e) {
+            // Ignorar errores
+        }
+    }
+
+    private void cargarPeticionesActivas() {
+        modelPeticiones.setRowCount(0);
+        try {
+            List<PeticionVendedor> peticiones = peticionController.getPeticionesPendientes(
+                    SessionManager.getCurrentUser().getUsuarioId()
             );
-            double stockMinimo = Double.parseDouble(
-                    ((String) tableModelStockBajo.getValueAt(selectedRow, 3)).replace(",", "")
+
+            for (PeticionVendedor p : peticiones) {
+                modelPeticiones.addRow(new Object[]{
+                        p.getProductoNombre(),
+                        p.getCantidadSolicitada(),
+                        p.getEstado(),
+                        p.getFechaSolicitud()
+                });
+            }
+        } catch (Exception e) {
+            // Ignorar errores
+        }
+    }
+
+    private void cargarStockBajo() {
+        modelStock.setRowCount(0);
+        try {
+            List<Producto> productos = peticionController.getProductosStockBajoVendedor(
+                    SessionManager.getCurrentUser().getUsuarioId()
             );
 
-            // Calcular cantidad recomendada
-            double cantidadRecomendada = stockMinimo * 3;
+            for (Producto p : productos) {
+                String estado = p.getStockVendedor() <= p.getCantidadMinimaVendedor() * 0.5 ? "CRÍTICO" : "BAJO";
+                modelStock.addRow(new Object[]{
+                        p.getNombre(),
+                        p.getStockVendedor(),
+                        p.getCantidadMinimaVendedor(),
+                        estado
+                });
+            }
+        } catch (Exception e) {
+            // Ignorar errores
+        }
+    }
 
-            String cantidadStr = JOptionPane.showInputDialog(this,
-                    "Solicitar stock a bodega:\n\n" +
-                            "Producto: " + productoNombre + "\n" +
-                            "Stock actual: " + stockActual + "\n" +
-                            "Stock mínimo: " + stockMinimo + "\n\n" +
-                            "Cantidad a solicitar (recomendado: " + cantidadRecomendada + "):",
-                    "Solicitar Stock",
-                    JOptionPane.QUESTION_MESSAGE);
+    private void iniciarActualizacionAutomatica() {
+        Timer timer = new Timer(30000, e -> cargarDashboard()); // Actualizar cada 30 segundos
+        timer.start();
+    }
 
-            if (cantidadStr != null && !cantidadStr.trim().isEmpty()) {
-                double cantidad = Double.parseDouble(cantidadStr);
+    private void abrirPuntoVenta() {
+        VenderForm venderForm = new VenderForm();
+        venderForm.setVisible(true);
+        Licoreria.mostrarFormulario(venderForm);
+    }
 
-                String observaciones = JOptionPane.showInputDialog(this,
-                        "Observaciones para la solicitud:",
-                        "Observaciones",
-                        JOptionPane.QUESTION_MESSAGE);
+    private void abrirSolicitudes() {
+        VendedorPedirForm pedirForm = new VendedorPedirForm();
+        pedirForm.setVisible(true);
+        com.mycompany.licoreria.Licoreria.mostrarFormulario(pedirForm);
+    }
 
-                if (observaciones != null) {
-                    boolean success = ventaController.crearPeticionStock(
-                            productoId, usuarioId, cantidad, observaciones);
+    // Clases de renderizado actualizadas
+    class EstadoPeticionRenderer extends DefaultTableCellRenderer {
+        public Component getTableCellRendererComponent(JTable table, Object value,
+                                                       boolean isSelected, boolean hasFocus, int row, int column) {
+            Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+            c.setForeground(TEXT_WHITE);
 
-                    if (success) {
-                        JOptionPane.showMessageDialog(this,
-                                "Solicitud de stock enviada exitosamente",
-                                "Éxito",
-                                JOptionPane.INFORMATION_MESSAGE);
-                        loadProductosStockBajo();
-                    } else {
-                        JOptionPane.showMessageDialog(this,
-                                "Error al enviar la solicitud",
-                                "Error",
-                                JOptionPane.ERROR_MESSAGE);
+            if (column == 2) { // Columna de estado
+                String estado = (String) value;
+                switch (estado.toLowerCase()) {
+                    case "pendiente":
+                        c.setBackground(new Color(70, 100, 170)); // Azul medio
+                        break;
+                    case "aprobada":
+                        c.setBackground(new Color(60, 140, 100)); // Verde medio
+                        break;
+                    case "rechazada":
+                        c.setBackground(new Color(180, 80, 80)); // Rojo medio
+                        break;
+                    case "despachada":
+                        c.setBackground(new Color(80, 120, 160)); // Azul grisáceo
+                        break;
+                    default:
+                        c.setBackground(new Color(50, 65, 95));
+                }
+            } else {
+                c.setBackground(new Color(50, 65, 95));
+            }
+
+            return c;
+        }
+    }
+
+    class StockBajoRenderer extends DefaultTableCellRenderer {
+        public Component getTableCellRendererComponent(JTable table, Object value,
+                                                       boolean isSelected, boolean hasFocus, int row, int column) {
+            Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+            c.setForeground(TEXT_WHITE);
+
+            if (column == 3) { // Columna de estado
+                String estado = (String) value;
+                if ("CRÍTICO".equals(estado)) {
+                    c.setBackground(new Color(180, 80, 80)); // Rojo medio
+                } else if ("BAJO".equals(estado)) {
+                    c.setBackground(new Color(180, 140, 60)); // Amarillo oscuro
+                }
+            } else {
+                c.setBackground(new Color(50, 65, 95));
+            }
+
+            return c;
+        }
+    }
+
+    // Clases para componentes modernos
+    class ModernButton extends JButton {
+        private Color originalColor;
+
+        public ModernButton(String text, Color color) {
+            super(text);
+            this.originalColor = color;
+
+            setFont(new Font("Segoe UI", Font.BOLD, 12));
+            setBackground(color);
+            setForeground(TEXT_WHITE);
+            setFocusPainted(false);
+            setBorderPainted(false);
+            setCursor(new Cursor(Cursor.HAND_CURSOR));
+            setBorder(BorderFactory.createEmptyBorder(12, 20, 12, 20));
+
+            addMouseListener(new MouseAdapter() {
+                public void mouseEntered(MouseEvent e) {
+                    if (isEnabled()) {
+                        setBackground(originalColor.darker());
                     }
                 }
-            }
-        } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(this,
-                    "La cantidad debe ser un número válido",
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE);
-        } catch (IllegalArgumentException e) {
-            JOptionPane.showMessageDialog(this,
-                    e.getMessage(),
-                    "Error de validación",
-                    JOptionPane.ERROR_MESSAGE);
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(this,
-                    "Error al solicitar stock: " + e.getMessage(),
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE);
+                public void mouseExited(MouseEvent e) {
+                    if (isEnabled()) {
+                        setBackground(originalColor);
+                    }
+                }
+            });
         }
     }
 
-    private void verDetallesVenta() {
-        int selectedRow = tblVentas.getSelectedRow();
-        if (selectedRow == -1) {
-            JOptionPane.showMessageDialog(this,
-                    "Seleccione una venta para ver detalles",
-                    "Advertencia",
-                    JOptionPane.WARNING_MESSAGE);
-            return;
-        }
+    class QuickActionButton extends JButton {
+        private Color originalColor;
 
-        try {
-            int ventaId = (int) tableModelVentas.getValueAt(selectedRow, 0);
-            List<DetalleVenta> detalles = ventaController.getDetallesVenta(ventaId);
+        public QuickActionButton(String text, Color color) {
+            super(text);
+            this.originalColor = color;
 
-            StringBuilder detallesStr = new StringBuilder();
-            detallesStr.append("<html><div style='text-align: center;'>");
-            detallesStr.append("<h3>Detalles de Venta #").append(ventaId).append("</h3>");
-            detallesStr.append("<table border='1' style='margin: 0 auto; width: 80%;'>");
-            detallesStr.append("<tr><th>Producto</th><th>Cantidad</th><th>Precio</th><th>Subtotal</th></tr>");
+            setFont(new Font("Segoe UI", Font.BOLD, 11));
+            setBackground(color);
+            setForeground(TEXT_WHITE);
+            setFocusPainted(false);
+            setBorderPainted(false);
+            setCursor(new Cursor(Cursor.HAND_CURSOR));
 
-            for (DetalleVenta detalle : detalles) {
-                detallesStr.append("<tr>")
-                        .append("<td>").append(detalle.getProductoNombre()).append("</td>")
-                        .append("<td>").append(detalle.getCantidad()).append(" ").append(detalle.getUnidadMedida()).append("</td>")
-                        .append("<td>$").append(detalle.getPrecioUnitario()).append("</td>")
-                        .append("<td>$").append(detalle.getSubTotal()).append("</td>")
-                        .append("</tr>");
-            }
-
-            detallesStr.append("</table></div></html>");
-
-            JOptionPane.showMessageDialog(this,
-                    detallesStr.toString(),
-                    "Detalles de Venta",
-                    JOptionPane.INFORMATION_MESSAGE);
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(this,
-                    "Error al cargar detalles: " + e.getMessage(),
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE);
+            addMouseListener(new MouseAdapter() {
+                public void mouseEntered(MouseEvent e) {
+                    if (isEnabled()) {
+                        setBackground(originalColor.darker());
+                    }
+                }
+                public void mouseExited(MouseEvent e) {
+                    if (isEnabled()) {
+                        setBackground(originalColor);
+                    }
+                }
+            });
         }
     }
 
-    @SuppressWarnings("unchecked")
-    // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
-    private void initComponents() {
+    // Clase para el fondo con gradiente
+    class GradientPanel extends JPanel {
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            Graphics2D g2d = (Graphics2D) g;
+            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
 
-        jTabbedPane1 = new javax.swing.JTabbedPane();
-        jPanel1 = new javax.swing.JPanel();
-        jScrollPane1 = new javax.swing.JScrollPane();
-        tblProductos = new javax.swing.JTable();
-        txtBuscarProducto = new javax.swing.JTextField();
-        btnBuscar = new javax.swing.JButton();
-        btnAgregarCarrito = new javax.swing.JButton();
-        jLabel1 = new javax.swing.JLabel();
-        jPanel2 = new javax.swing.JPanel();
-        jScrollPane2 = new javax.swing.JScrollPane();
-        tblCarrito = new javax.swing.JTable();
-        jLabel2 = new javax.swing.JLabel();
-        txtCliente = new javax.swing.JTextField();
-        jLabel3 = new javax.swing.JLabel();
-        btnProcesarVenta = new javax.swing.JButton();
-        lblTotalVenta = new javax.swing.JLabel();
-        jPanel3 = new javax.swing.JPanel();
-        jScrollPane3 = new javax.swing.JScrollPane();
-        tblVentas = new javax.swing.JTable();
-        jLabel4 = new javax.swing.JLabel();
-        btnVerDetalles = new javax.swing.JButton();
-        jPanel4 = new javax.swing.JPanel();
-        jScrollPane4 = new javax.swing.JScrollPane();
-        tblStockBajo = new javax.swing.JTable();
-        jLabel5 = new javax.swing.JLabel();
-        btnSolicitarStock = new javax.swing.JButton();
-        lblEstadisticas = new javax.swing.JLabel();
-        btnRefrescar = new javax.swing.JButton();
+            // Gradiente azul oscuro moderno
+            GradientPaint gradient = new GradientPaint(
+                    0, 0, new Color(30, 40, 60),
+                    getWidth(), getHeight(), new Color(50, 70, 100)
+            );
+            g2d.setPaint(gradient);
+            g2d.fillRect(0, 0, getWidth(), getHeight());
 
-        setClosable(true);
-        setIconifiable(true);
-        setMaximizable(true);
-        setResizable(true);
-        setTitle("Módulo de Vendedor");
+            // Elementos decorativos sutiles
+            g2d.setColor(new Color(255, 255, 255, 10));
+            // Círculos decorativos en esquinas
+            g2d.fillOval(-50, -50, 150, 150);
+            g2d.fillOval(getWidth() - 100, getHeight() - 100, 200, 200);
+        }
+    }
 
-        jTabbedPane1.setFont(new java.awt.Font("Liberation Sans", 1, 14)); // NOI18N
-
-        tblProductos.setModel(new javax.swing.table.DefaultTableModel(
-                new Object [][] {
-                        {null, null, null, null, null},
-                        {null, null, null, null, null},
-                        {null, null, null, null, null},
-                        {null, null, null, null, null}
-                },
-                new String [] {
-                        "Title 1", "Title 2", "Title 3", "Title 4", "Title 5"
-                }
-        ));
-        jScrollPane1.setViewportView(tblProductos);
-
-        txtBuscarProducto.setFont(new java.awt.Font("Liberation Sans", 0, 14)); // NOI18N
-        txtBuscarProducto.setText("Buscar producto...");
-
-        btnBuscar.setFont(new java.awt.Font("Liberation Sans", 1, 14)); // NOI18N
-        btnBuscar.setText("BUSCAR");
-        btnBuscar.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btnBuscarActionPerformed(evt);
-            }
-        });
-
-        btnAgregarCarrito.setBackground(new java.awt.Color(51, 153, 255));
-        btnAgregarCarrito.setFont(new java.awt.Font("Liberation Sans", 1, 14)); // NOI18N
-        btnAgregarCarrito.setText("AGREGAR AL CARRITO");
-        btnAgregarCarrito.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btnAgregarCarritoActionPerformed(evt);
-            }
-        });
-
-        jLabel1.setFont(new java.awt.Font("Liberation Sans", 1, 16)); // NOI18N
-        jLabel1.setText("PRODUCTOS DISPONIBLES PARA VENTA");
-
-        javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
-        jPanel1.setLayout(jPanel1Layout);
-        jPanel1Layout.setHorizontalGroup(
-                jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                        .addGroup(jPanel1Layout.createSequentialGroup()
-                                .addContainerGap()
-                                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                        .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 1169, Short.MAX_VALUE)
-                                        .addGroup(jPanel1Layout.createSequentialGroup()
-                                                .addComponent(txtBuscarProducto, javax.swing.GroupLayout.PREFERRED_SIZE, 250, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                                .addComponent(btnBuscar, javax.swing.GroupLayout.PREFERRED_SIZE, 120, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                                .addComponent(btnAgregarCarrito, javax.swing.GroupLayout.PREFERRED_SIZE, 200, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                                .addComponent(jLabel1)))
-                                .addContainerGap())
-        );
-        jPanel1Layout.setVerticalGroup(
-                jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                        .addGroup(jPanel1Layout.createSequentialGroup()
-                                .addContainerGap()
-                                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                                        .addComponent(txtBuscarProducto, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                        .addComponent(btnBuscar, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                        .addComponent(btnAgregarCarrito, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                        .addComponent(jLabel1))
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 587, Short.MAX_VALUE)
-                                .addContainerGap())
-        );
-
-        jTabbedPane1.addTab("Productos", jPanel1);
-
-        tblCarrito.setModel(new javax.swing.table.DefaultTableModel(
-                new Object [][] {
-                        {null, null, null, null, null},
-                        {null, null, null, null, null},
-                        {null, null, null, null, null},
-                        {null, null, null, null, null}
-                },
-                new String [] {
-                        "Title 1", "Title 2", "Title 3", "Title 4", "Title 5"
-                }
-        ));
-        jScrollPane2.setViewportView(tblCarrito);
-
-        jLabel2.setFont(new java.awt.Font("Liberation Sans", 1, 16)); // NOI18N
-        jLabel2.setText("CARRITO DE COMPRAS");
-
-        txtCliente.setFont(new java.awt.Font("Liberation Sans", 0, 14)); // NOI18N
-        txtCliente.setText("CLIENTE GENERAL");
-
-        jLabel3.setFont(new java.awt.Font("Liberation Sans", 1, 14)); // NOI18N
-        jLabel3.setText("Cliente:");
-
-        btnProcesarVenta.setBackground(new java.awt.Color(0, 153, 51));
-        btnProcesarVenta.setFont(new java.awt.Font("Liberation Sans", 1, 16)); // NOI18N
-        btnProcesarVenta.setForeground(new java.awt.Color(255, 255, 255));
-        btnProcesarVenta.setText("PROCESAR VENTA");
-        btnProcesarVenta.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btnProcesarVentaActionPerformed(evt);
-            }
-        });
-
-        lblTotalVenta.setFont(new java.awt.Font("Liberation Sans", 1, 18)); // NOI18N
-        lblTotalVenta.setForeground(new java.awt.Color(0, 102, 0));
-        lblTotalVenta.setText("Total: $0.00");
-
-        javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
-        jPanel2.setLayout(jPanel2Layout);
-        jPanel2Layout.setHorizontalGroup(
-                jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                        .addGroup(jPanel2Layout.createSequentialGroup()
-                                .addContainerGap()
-                                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                        .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 1169, Short.MAX_VALUE)
-                                        .addGroup(jPanel2Layout.createSequentialGroup()
-                                                .addComponent(jLabel3)
-                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                                .addComponent(txtCliente, javax.swing.GroupLayout.PREFERRED_SIZE, 200, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                                .addGap(18, 18, 18)
-                                                .addComponent(lblTotalVenta)
-                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                                .addComponent(btnProcesarVenta, javax.swing.GroupLayout.PREFERRED_SIZE, 200, javax.swing.GroupLayout.PREFERRED_SIZE))
-                                        .addGroup(jPanel2Layout.createSequentialGroup()
-                                                .addComponent(jLabel2)
-                                                .addGap(0, 0, Short.MAX_VALUE)))
-                                .addContainerGap())
-        );
-        jPanel2Layout.setVerticalGroup(
-                jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                        .addGroup(jPanel2Layout.createSequentialGroup()
-                                .addContainerGap()
-                                .addComponent(jLabel2)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                                        .addComponent(txtCliente, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                        .addComponent(jLabel3)
-                                        .addComponent(btnProcesarVenta, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                        .addComponent(lblTotalVenta))
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 552, Short.MAX_VALUE)
-                                .addContainerGap())
-        );
-
-        jTabbedPane1.addTab("Punto de Venta", jPanel2);
-
-        tblVentas.setModel(new javax.swing.table.DefaultTableModel(
-                new Object [][] {
-                        {null, null, null, null, null},
-                        {null, null, null, null, null},
-                        {null, null, null, null, null},
-                        {null, null, null, null, null}
-                },
-                new String [] {
-                        "Title 1", "Title 2", "Title 3", "Title 4", "Title 5"
-                }
-        ));
-        jScrollPane3.setViewportView(tblVentas);
-
-        jLabel4.setFont(new java.awt.Font("Liberation Sans", 1, 16)); // NOI18N
-        jLabel4.setText("HISTORIAL DE VENTAS");
-
-        btnVerDetalles.setFont(new java.awt.Font("Liberation Sans", 1, 14)); // NOI18N
-        btnVerDetalles.setText("VER DETALLES");
-        btnVerDetalles.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btnVerDetallesActionPerformed(evt);
-            }
-        });
-
-        javax.swing.GroupLayout jPanel3Layout = new javax.swing.GroupLayout(jPanel3);
-        jPanel3.setLayout(jPanel3Layout);
-        jPanel3Layout.setHorizontalGroup(
-                jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                        .addGroup(jPanel3Layout.createSequentialGroup()
-                                .addContainerGap()
-                                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                        .addComponent(jScrollPane3, javax.swing.GroupLayout.DEFAULT_SIZE, 1169, Short.MAX_VALUE)
-                                        .addGroup(jPanel3Layout.createSequentialGroup()
-                                                .addComponent(btnVerDetalles, javax.swing.GroupLayout.PREFERRED_SIZE, 150, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                                .addComponent(jLabel4)))
-                                .addContainerGap())
-        );
-        jPanel3Layout.setVerticalGroup(
-                jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                        .addGroup(jPanel3Layout.createSequentialGroup()
-                                .addContainerGap()
-                                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                                        .addComponent(jLabel4)
-                                        .addComponent(btnVerDetalles, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE))
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(jScrollPane3, javax.swing.GroupLayout.DEFAULT_SIZE, 587, Short.MAX_VALUE)
-                                .addContainerGap())
-        );
-
-        jTabbedPane1.addTab("Historial de Ventas", jPanel3);
-
-        tblStockBajo.setModel(new javax.swing.table.DefaultTableModel(
-                new Object [][] {
-                        {null, null, null, null, null},
-                        {null, null, null, null, null},
-                        {null, null, null, null, null},
-                        {null, null, null, null, null}
-                },
-                new String [] {
-                        "Title 1", "Title 2", "Title 3", "Title 4", "Title 5"
-                }
-        ));
-        jScrollPane4.setViewportView(tblStockBajo);
-
-        jLabel5.setFont(new java.awt.Font("Liberation Sans", 1, 16)); // NOI18N
-        jLabel5.setText("PRODUCTOS CON STOCK BAJO - SOLICITAR A BODEGA");
-
-        btnSolicitarStock.setBackground(new java.awt.Color(255, 153, 51));
-        btnSolicitarStock.setFont(new java.awt.Font("Liberation Sans", 1, 14)); // NOI18N
-        btnSolicitarStock.setText("SOLICITAR STOCK");
-        btnSolicitarStock.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btnSolicitarStockActionPerformed(evt);
-            }
-        });
-
-        javax.swing.GroupLayout jPanel4Layout = new javax.swing.GroupLayout(jPanel4);
-        jPanel4.setLayout(jPanel4Layout);
-        jPanel4Layout.setHorizontalGroup(
-                jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                        .addGroup(jPanel4Layout.createSequentialGroup()
-                                .addContainerGap()
-                                .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                        .addComponent(jScrollPane4, javax.swing.GroupLayout.DEFAULT_SIZE, 1169, Short.MAX_VALUE)
-                                        .addGroup(jPanel4Layout.createSequentialGroup()
-                                                .addComponent(btnSolicitarStock, javax.swing.GroupLayout.PREFERRED_SIZE, 150, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                                .addComponent(jLabel5)))
-                                .addContainerGap())
-        );
-        jPanel4Layout.setVerticalGroup(
-                jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                        .addGroup(jPanel4Layout.createSequentialGroup()
-                                .addContainerGap()
-                                .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                                        .addComponent(jLabel5)
-                                        .addComponent(btnSolicitarStock, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE))
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(jScrollPane4, javax.swing.GroupLayout.DEFAULT_SIZE, 587, Short.MAX_VALUE)
-                                .addContainerGap())
-        );
-
-        jTabbedPane1.addTab("Solicitar Stock", jPanel4);
-
-        lblEstadisticas.setFont(new java.awt.Font("Liberation Sans", 1, 14)); // NOI18N
-        lblEstadisticas.setText("Cargando estadísticas...");
-
-        btnRefrescar.setFont(new java.awt.Font("Liberation Sans", 1, 12)); // NOI18N
-        btnRefrescar.setText("Refrescar Datos");
-        btnRefrescar.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btnRefrescarActionPerformed(evt);
-            }
-        });
-
-        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
-        getContentPane().setLayout(layout);
-        layout.setHorizontalGroup(
-                layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                        .addGroup(layout.createSequentialGroup()
-                                .addContainerGap()
-                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                        .addComponent(jTabbedPane1)
-                                        .addGroup(layout.createSequentialGroup()
-                                                .addComponent(lblEstadisticas, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                                .addComponent(btnRefrescar)))
-                                .addContainerGap())
-        );
-        layout.setVerticalGroup(
-                layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                        .addGroup(layout.createSequentialGroup()
-                                .addContainerGap()
-                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                                        .addComponent(lblEstadisticas)
-                                        .addComponent(btnRefrescar))
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(jTabbedPane1)
-                                .addContainerGap())
-        );
-
-        pack();
-    }// </editor-fold>//GEN-END:initComponents
-
-    private void btnBuscarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnBuscarActionPerformed
-        buscarProductos();
-    }//GEN-LAST:event_btnBuscarActionPerformed
-
-    private void btnAgregarCarritoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnAgregarCarritoActionPerformed
-        agregarAlCarrito();
-    }//GEN-LAST:event_btnAgregarCarritoActionPerformed
-
-    private void btnProcesarVentaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnProcesarVentaActionPerformed
-        procesarVenta();
-    }//GEN-LAST:event_btnProcesarVentaActionPerformed
-
-    private void btnVerDetallesActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnVerDetallesActionPerformed
-        verDetallesVenta();
-    }//GEN-LAST:event_btnVerDetallesActionPerformed
-
-    private void btnSolicitarStockActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnSolicitarStockActionPerformed
-        solicitarStock();
-    }//GEN-LAST:event_btnSolicitarStockActionPerformed
-
-    private void btnRefrescarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnRefrescarActionPerformed
-        loadAllData();
-    }//GEN-LAST:event_btnRefrescarActionPerformed
-
-    // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JButton btnAgregarCarrito;
-    private javax.swing.JButton btnBuscar;
-    private javax.swing.JButton btnProcesarVenta;
-    private javax.swing.JButton btnRefrescar;
-    private javax.swing.JButton btnSolicitarStock;
-    private javax.swing.JButton btnVerDetalles;
-    private javax.swing.JLabel jLabel1;
-    private javax.swing.JLabel jLabel2;
-    private javax.swing.JLabel jLabel3;
-    private javax.swing.JLabel jLabel4;
-    private javax.swing.JLabel jLabel5;
-    private javax.swing.JPanel jPanel1;
-    private javax.swing.JPanel jPanel2;
-    private javax.swing.JPanel jPanel3;
-    private javax.swing.JPanel jPanel4;
-    private javax.swing.JScrollPane jScrollPane1;
-    private javax.swing.JScrollPane jScrollPane2;
-    private javax.swing.JScrollPane jScrollPane3;
-    private javax.swing.JScrollPane jScrollPane4;
-    private javax.swing.JTabbedPane jTabbedPane1;
-    private javax.swing.JLabel lblEstadisticas;
-    private javax.swing.JLabel lblTotalVenta;
-    private javax.swing.JTable tblCarrito;
-    private javax.swing.JTable tblProductos;
-    private javax.swing.JTable tblStockBajo;
-    private javax.swing.JTable tblVentas;
-    private javax.swing.JTextField txtBuscarProducto;
-    private javax.swing.JTextField txtCliente;
-    // End of variables declaration//GEN-END:variables
+    private void showError(String message) {
+        JOptionPane.showMessageDialog(this,
+                "<html><div style='text-align: center; padding: 10px;'>" +
+                        "<div style='background: #2C3E50; padding: 15px; border-radius: 8px; border-left: 4px solid #E74C3C;'>" +
+                        "<div style='color: #FFFFFF; font-weight: bold; margin-bottom: 5px;'>❌ Error</div>" +
+                        "<div style='color: #ECF0F1;'>" + message + "</div>" +
+                        "</div>" +
+                        "</div></html>",
+                "Error",
+                JOptionPane.ERROR_MESSAGE);
+    }
 }

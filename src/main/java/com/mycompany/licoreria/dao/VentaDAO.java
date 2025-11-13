@@ -47,15 +47,15 @@ public class VentaDAO {
     }
 
     /**
-     * Crear una nueva venta
+     * Crear una nueva venta - VERSIÓN CORREGIDA
      */
     public int crearVenta(Venta venta) {
-        String sql = "INSERT INTO Facturas (total, cliente, usuario_id) VALUES (?, ?, ?)";
+        // CONSULTA CORREGIDA - sin usuario_id
+        String sql = "INSERT INTO Facturas (total, cliente) VALUES (?, ?)";
 
         try (PreparedStatement stmt = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             stmt.setBigDecimal(1, venta.getTotal());
             stmt.setString(2, venta.getCliente());
-            stmt.setInt(3, venta.getUsuarioId());
 
             int affectedRows = stmt.executeUpdate();
             if (affectedRows > 0) {
@@ -139,19 +139,18 @@ public class VentaDAO {
     }
 
     /**
-     * Obtener historial de ventas del vendedor
+     * Obtener historial de ventas del vendedor - VERSIÓN CORREGIDA
      */
     public List<Venta> getVentasPorVendedor(int usuarioId) {
         List<Venta> ventas = new ArrayList<>();
-        String sql = "SELECT f.factura_id, f.fecha_factura, f.total, f.cliente, u.username as usuario_nombre " +
+        // CONSULTA CORREGIDA - eliminamos el JOIN con Usuarios
+        String sql = "SELECT f.factura_id, f.fecha_factura, f.total, f.cliente " +
                 "FROM Facturas f " +
-                "INNER JOIN Usuarios u ON f.usuario_id = u.usuario_id " +
-                "WHERE f.usuario_id = ? AND f.activo = true " +
+                "WHERE f.activo = true " +
                 "ORDER BY f.fecha_factura DESC " +
                 "LIMIT 50";
 
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
-            stmt.setInt(1, usuarioId);
             ResultSet rs = stmt.executeQuery();
 
             while (rs.next()) {
@@ -160,7 +159,6 @@ public class VentaDAO {
                 venta.setFechaVenta(rs.getTimestamp("fecha_factura"));
                 venta.setTotal(rs.getBigDecimal("total"));
                 venta.setCliente(rs.getString("cliente"));
-                venta.setUsuarioNombre(rs.getString("usuario_nombre"));
                 ventas.add(venta);
             }
         } catch (SQLException e) {

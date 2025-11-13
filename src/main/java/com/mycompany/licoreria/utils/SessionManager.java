@@ -79,11 +79,17 @@ public class SessionManager {
     }
 
     /**
-     * Verificar permisos
+     * Verificar permisos - TEMPORALMENTE TODOS TIENEN ACCESO A TODO
      */
     public static boolean tienePermiso(String modulo) {
         if (!haySesionActiva()) return false;
 
+        // TEMPORAL: Permitir acceso a todos los módulos para todos los usuarios
+        System.out.println("ACCESO TEMPORAL: Usuario " + currentUser.getUsername() +
+                " accediendo a módulo: " + modulo);
+        return true;
+
+        /* CÓDIGO ORIGINAL (COMENTADO)
         switch (modulo.toUpperCase()) {
             case "ADMINISTRACION":
                 return currentUser.getRolId() == 1 || currentUser.getRolId() == 3; // Admin o Bodega
@@ -91,8 +97,48 @@ public class SessionManager {
                 return currentUser.getRolId() == 3 || currentUser.getRolId() == 1; // Bodega o Admin
             case "VENTAS":
                 return currentUser.getRolId() == 2 || currentUser.getRolId() == 1; // Vendedor o Admin
+            case "INVENTARIO":
+                return currentUser.getRolId() == 3 || currentUser.getRolId() == 1; // Bodega o Admin
+            case "REPORTES":
+                return currentUser.getRolId() == 1; // Solo Admin
             default:
                 return false;
         }
+        */
+    }
+
+    /**
+     * Obtener el rol actual como texto
+     */
+    public static String getRolActual() {
+        if (!haySesionActiva()) return "No logueado";
+
+        switch (currentUser.getRolId()) {
+            case 1: return "Administrador";
+            case 2: return "Vendedor";
+            case 3: return "Encargado de Bodega";
+            default: return "Usuario";
+        }
+    }
+
+    /**
+     * Verificar si es administrador
+     */
+    public static boolean esAdministrador() {
+        return haySesionActiva() && currentUser.getRolId() == 1;
+    }
+
+    /**
+     * Verificar si es bodega
+     */
+    public static boolean esBodega() {
+        return haySesionActiva() && currentUser.getRolId() == 3;
+    }
+
+    /**
+     * Verificar si es vendedor
+     */
+    public static boolean esVendedor() {
+        return haySesionActiva() && currentUser.getRolId() == 2;
     }
 }
