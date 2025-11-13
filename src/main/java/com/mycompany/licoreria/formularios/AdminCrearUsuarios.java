@@ -49,30 +49,31 @@ public class AdminCrearUsuarios extends JInternalFrame {
         setIconifiable(true);
         setDefaultCloseOperation(JInternalFrame.DISPOSE_ON_CLOSE);
 
-        setSize(1000, 700);
+        setSize(1200, 700);
         setLayout(new BorderLayout(10, 10));
 
         // Panel principal con gradiente
         JPanel mainPanel = new GradientPanel();
         mainPanel.setLayout(new BorderLayout(10, 10));
-        mainPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        // Header
+        // Header más compacto
         mainPanel.add(createHeaderPanel(), BorderLayout.NORTH);
 
-        // Content (Form + Table)
-        JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
-        splitPane.setDividerLocation(300);
-        splitPane.setDividerSize(3);
-        splitPane.setBorder(BorderFactory.createEmptyBorder());
+        // Content area dividida horizontalmente
+        JSplitPane horizontalSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
+        horizontalSplitPane.setDividerLocation(500); // Mitad de la pantalla
+        horizontalSplitPane.setDividerSize(3);
+        horizontalSplitPane.setBorder(BorderFactory.createEmptyBorder());
+        horizontalSplitPane.setBackground(BACKGROUND_COLOR);
 
-        // Form Panel
-        splitPane.setTopComponent(createFormPanel());
+        // Form Panel (izquierda) con scroll
+        horizontalSplitPane.setLeftComponent(createFormPanelWithScroll());
 
-        // Table Panel
-        splitPane.setBottomComponent(createTablePanel());
+        // Table Panel (derecha)
+        horizontalSplitPane.setRightComponent(createTablePanel());
 
-        mainPanel.add(splitPane, BorderLayout.CENTER);
+        mainPanel.add(horizontalSplitPane, BorderLayout.CENTER);
 
         add(mainPanel);
 
@@ -85,23 +86,23 @@ public class AdminCrearUsuarios extends JInternalFrame {
         headerPanel.setBackground(new Color(0, 0, 0, 0));
         headerPanel.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(BORDER_COLOR, 1),
-                BorderFactory.createEmptyBorder(15, 20, 15, 20)
+                BorderFactory.createEmptyBorder(8, 15, 8, 15) // Reducido el padding
         ));
 
-        // Título
+        // Título más compacto
         JLabel titleLabel = new JLabel("👥 Gestión de Usuarios");
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 18)); // Tamaño reducido
         titleLabel.setForeground(TEXT_WHITE);
 
-        // Barra de búsqueda
-        JPanel searchPanel = new JPanel(new BorderLayout(10, 0));
+        // Barra de búsqueda más compacta
+        JPanel searchPanel = new JPanel(new BorderLayout(8, 0)); // Espacio reducido
         searchPanel.setBackground(new Color(0, 0, 0, 0));
 
         txtSearch = new ModernTextField("Buscar usuarios...");
-        txtSearch.setPreferredSize(new Dimension(250, 35));
+        txtSearch.setPreferredSize(new Dimension(200, 32)); // Altura reducida
 
         btnSearch = new ModernButton("🔍 Buscar", ACCENT_COLOR);
-        btnSearch.setPreferredSize(new Dimension(100, 35));
+        btnSearch.setPreferredSize(new Dimension(90, 32)); // Altura reducida
         btnSearch.addActionListener(e -> searchUsers());
 
         // Evento de búsqueda en tiempo real
@@ -120,6 +121,23 @@ public class AdminCrearUsuarios extends JInternalFrame {
         return headerPanel;
     }
 
+    private JScrollPane createFormPanelWithScroll() {
+        JPanel formPanel = createFormPanel();
+
+        JScrollPane scrollPane = new JScrollPane(formPanel);
+        scrollPane.setBorder(BorderFactory.createEmptyBorder());
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+
+        // Personalizar la barra de scroll
+        JScrollBar verticalScrollBar = scrollPane.getVerticalScrollBar();
+        verticalScrollBar.setPreferredSize(new Dimension(10, Integer.MAX_VALUE));
+        verticalScrollBar.setBackground(CARD_BACKGROUND);
+        verticalScrollBar.setForeground(ACCENT_COLOR);
+
+        return scrollPane;
+    }
+
     private JPanel createFormPanel() {
         JPanel formPanel = new JPanel(new BorderLayout());
         formPanel.setBackground(CARD_BACKGROUND);
@@ -131,7 +149,7 @@ public class AdminCrearUsuarios extends JInternalFrame {
                         new Font("Segoe UI", Font.BOLD, 14),
                         TEXT_WHITE
                 ),
-                BorderFactory.createEmptyBorder(20, 20, 20, 20)
+                BorderFactory.createEmptyBorder(15, 15, 15, 15) // Padding reducido
         ));
 
         // Panel de campos del formulario
@@ -140,76 +158,85 @@ public class AdminCrearUsuarios extends JInternalFrame {
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.insets = new Insets(8, 8, 8, 8);
+        gbc.insets = new Insets(6, 8, 6, 8); // Espaciado reducido
         gbc.weightx = 1.0;
 
         // Username
-        gbc.gridx = 0; gbc.gridy = 0; gbc.gridwidth = 1;
+        gbc.gridx = 0; gbc.gridy = 0; gbc.gridwidth = 2;
         JLabel lblUsername = new JLabel("Nombre de Usuario:");
-        lblUsername.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lblUsername.setFont(new Font("Segoe UI", Font.BOLD, 12)); // Fuente reducida
         lblUsername.setForeground(TEXT_WHITE);
         fieldsPanel.add(lblUsername, gbc);
 
-        gbc.gridx = 1; gbc.gridy = 0; gbc.gridwidth = 2;
+        gbc.gridx = 0; gbc.gridy = 1; gbc.gridwidth = 2;
         txtUsername = new ModernTextField("Ingrese el nombre de usuario");
-        txtUsername.setPreferredSize(new Dimension(200, 40));
+        txtUsername.setPreferredSize(new Dimension(300, 36)); // Altura reducida
         fieldsPanel.add(txtUsername, gbc);
 
         // Contraseña
-        gbc.gridx = 0; gbc.gridy = 1;
+        gbc.gridx = 0; gbc.gridy = 2; gbc.gridwidth = 2;
         JLabel lblPassword = new JLabel("Contraseña:");
-        lblPassword.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lblPassword.setFont(new Font("Segoe UI", Font.BOLD, 12));
         lblPassword.setForeground(TEXT_WHITE);
         fieldsPanel.add(lblPassword, gbc);
 
-        gbc.gridx = 1; gbc.gridy = 1;
+        gbc.gridx = 0; gbc.gridy = 3; gbc.gridwidth = 2;
         txtPassword = new ModernPasswordField("Ingrese la contraseña");
-        txtPassword.setPreferredSize(new Dimension(200, 40));
+        txtPassword.setPreferredSize(new Dimension(300, 36));
         fieldsPanel.add(txtPassword, gbc);
 
         // Confirmar Contraseña
-        gbc.gridx = 2; gbc.gridy = 1;
+        gbc.gridx = 0; gbc.gridy = 4; gbc.gridwidth = 2;
         JLabel lblConfirmPassword = new JLabel("Confirmar Contraseña:");
-        lblConfirmPassword.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lblConfirmPassword.setFont(new Font("Segoe UI", Font.BOLD, 12));
         lblConfirmPassword.setForeground(TEXT_WHITE);
         fieldsPanel.add(lblConfirmPassword, gbc);
 
-        gbc.gridx = 3; gbc.gridy = 1;
+        gbc.gridx = 0; gbc.gridy = 5; gbc.gridwidth = 2;
         txtConfirmPassword = new ModernPasswordField("Confirme la contraseña");
-        txtConfirmPassword.setPreferredSize(new Dimension(200, 40));
+        txtConfirmPassword.setPreferredSize(new Dimension(300, 36));
         fieldsPanel.add(txtConfirmPassword, gbc);
 
         // Rol
-        gbc.gridx = 0; gbc.gridy = 2;
+        gbc.gridx = 0; gbc.gridy = 6; gbc.gridwidth = 2;
         JLabel lblRol = new JLabel("Rol:");
-        lblRol.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lblRol.setFont(new Font("Segoe UI", Font.BOLD, 12));
         lblRol.setForeground(TEXT_WHITE);
         fieldsPanel.add(lblRol, gbc);
 
-        gbc.gridx = 1; gbc.gridy = 2; gbc.gridwidth = 3;
+        gbc.gridx = 0; gbc.gridy = 7; gbc.gridwidth = 2;
         cmbRol = new ModernComboBox();
-        cmbRol.setPreferredSize(new Dimension(200, 40));
+        cmbRol.setPreferredSize(new Dimension(300, 36));
         fieldsPanel.add(cmbRol, gbc);
 
-        // Panel de botones
-        gbc.gridx = 0; gbc.gridy = 3; gbc.gridwidth = 4;
-        gbc.insets = new Insets(20, 8, 8, 8);
+        // Espacio entre campos y botones
+        gbc.gridx = 0; gbc.gridy = 8; gbc.gridwidth = 2;
+        gbc.insets = new Insets(15, 8, 8, 8);
+        fieldsPanel.add(Box.createVerticalStrut(10), gbc);
 
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 0));
+        // Panel de botones
+        gbc.gridx = 0; gbc.gridy = 9; gbc.gridwidth = 2;
+        gbc.insets = new Insets(10, 8, 8, 8);
+
+        JPanel buttonPanel = new JPanel(new GridLayout(2, 2, 8, 8)); // Espacio reducido
         buttonPanel.setBackground(CARD_BACKGROUND);
 
         btnCreate = new ModernButton("➕ Crear Usuario", SUCCESS_COLOR);
+        btnCreate.setPreferredSize(new Dimension(120, 35)); // Botones más compactos
         btnCreate.addActionListener(e -> createUser());
 
         btnUpdate = new ModernButton("✏️ Actualizar", WARNING_COLOR);
+        btnUpdate.setPreferredSize(new Dimension(120, 35));
         btnUpdate.setEnabled(false);
         btnUpdate.addActionListener(e -> updateUser());
 
         btnDelete = new ModernButton("🗑️ Eliminar", DANGER_COLOR);
+        btnDelete.setPreferredSize(new Dimension(120, 35));
         btnDelete.setEnabled(false);
         btnDelete.addActionListener(e -> deleteUser());
 
         btnClear = new ModernButton("🧹 Limpiar", new Color(149, 165, 166));
+        btnClear.setPreferredSize(new Dimension(120, 35));
         btnClear.addActionListener(e -> clearForm());
 
         buttonPanel.add(btnCreate);
@@ -218,6 +245,12 @@ public class AdminCrearUsuarios extends JInternalFrame {
         buttonPanel.add(btnClear);
 
         fieldsPanel.add(buttonPanel, gbc);
+
+        // Agregar espacio flexible para centrar verticalmente
+        gbc.gridx = 0; gbc.gridy = 10; gbc.gridwidth = 2;
+        gbc.weighty = 1.0;
+        gbc.fill = GridBagConstraints.BOTH;
+        fieldsPanel.add(Box.createVerticalGlue(), gbc);
 
         formPanel.add(fieldsPanel, BorderLayout.CENTER);
 
@@ -235,7 +268,7 @@ public class AdminCrearUsuarios extends JInternalFrame {
                         new Font("Segoe UI", Font.BOLD, 14),
                         TEXT_WHITE
                 ),
-                BorderFactory.createEmptyBorder(20, 20, 20, 20)
+                BorderFactory.createEmptyBorder(15, 15, 15, 15) // Padding reducido
         ));
 
         // Modelo de tabla
@@ -249,7 +282,7 @@ public class AdminCrearUsuarios extends JInternalFrame {
 
         usersTable = new JTable(tableModel);
         usersTable.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        usersTable.setRowHeight(35);
+        usersTable.setRowHeight(32); // Altura de fila reducida
         usersTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         usersTable.setIntercellSpacing(new Dimension(0, 0));
         usersTable.setShowGrid(false);
@@ -261,13 +294,20 @@ public class AdminCrearUsuarios extends JInternalFrame {
 
         // Header personalizado
         JTableHeader header = usersTable.getTableHeader();
-        header.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        header.setFont(new Font("Segoe UI", Font.BOLD, 12)); // Fuente reducida
         header.setBackground(PRIMARY_COLOR);
         header.setForeground(TEXT_WHITE);
-        header.setPreferredSize(new Dimension(header.getWidth(), 40));
+        header.setPreferredSize(new Dimension(header.getWidth(), 35)); // Altura reducida
 
         // Renderer para estado
         usersTable.getColumnModel().getColumn(3).setCellRenderer(new StatusRenderer());
+
+        // Ajustar anchos de columnas
+        usersTable.getColumnModel().getColumn(0).setPreferredWidth(50);  // ID
+        usersTable.getColumnModel().getColumn(1).setPreferredWidth(150); // Usuario
+        usersTable.getColumnModel().getColumn(2).setPreferredWidth(120); // Rol
+        usersTable.getColumnModel().getColumn(3).setPreferredWidth(80);  // Estado
+        usersTable.getColumnModel().getColumn(4).setPreferredWidth(120); // Fecha
 
         // Scroll pane
         JScrollPane scrollPane = new JScrollPane(usersTable);
@@ -281,13 +321,13 @@ public class AdminCrearUsuarios extends JInternalFrame {
             }
         });
 
-        // Panel de información
+        // Panel de información más compacto
         JPanel infoPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         infoPanel.setBackground(CARD_BACKGROUND);
-        infoPanel.setBorder(BorderFactory.createEmptyBorder(10, 0, 0, 0));
+        infoPanel.setBorder(BorderFactory.createEmptyBorder(8, 0, 0, 0)); // Padding reducido
 
         JLabel infoLabel = new JLabel("💡 Seleccione un usuario para editarlo o eliminarlo");
-        infoLabel.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        infoLabel.setFont(new Font("Segoe UI", Font.PLAIN, 11)); // Fuente reducida
         infoLabel.setForeground(new Color(180, 200, 255));
 
         infoPanel.add(infoLabel);
@@ -651,10 +691,10 @@ public class AdminCrearUsuarios extends JInternalFrame {
 
         public ModernTextField(String placeholder) {
             this.placeholder = placeholder;
-            setFont(new Font("Segoe UI", Font.PLAIN, 14));
+            setFont(new Font("Segoe UI", Font.PLAIN, 13)); // Fuente reducida
             setBorder(BorderFactory.createCompoundBorder(
                     BorderFactory.createLineBorder(BORDER_COLOR, 1),
-                    BorderFactory.createEmptyBorder(10, 15, 10, 15)
+                    BorderFactory.createEmptyBorder(8, 12, 8, 12) // Padding reducido
             ));
             setBackground(new Color(50, 65, 95));
             setForeground(TEXT_WHITE);
@@ -689,10 +729,10 @@ public class AdminCrearUsuarios extends JInternalFrame {
 
         public ModernPasswordField(String placeholder) {
             this.placeholder = placeholder;
-            setFont(new Font("Segoe UI", Font.PLAIN, 14));
+            setFont(new Font("Segoe UI", Font.PLAIN, 13)); // Fuente reducida
             setBorder(BorderFactory.createCompoundBorder(
                     BorderFactory.createLineBorder(BORDER_COLOR, 1),
-                    BorderFactory.createEmptyBorder(10, 15, 10, 15) // CORREGIDO: createEmptyBorder
+                    BorderFactory.createEmptyBorder(8, 12, 8, 12) // Padding reducido
             ));
             setBackground(new Color(50, 65, 95));
             setForeground(TEXT_WHITE);
@@ -728,12 +768,12 @@ public class AdminCrearUsuarios extends JInternalFrame {
 
     class ModernComboBox extends JComboBox<String> {
         public ModernComboBox() {
-            setFont(new Font("Segoe UI", Font.PLAIN, 14));
+            setFont(new Font("Segoe UI", Font.PLAIN, 13)); // Fuente reducida
             setBackground(new Color(50, 65, 95));
             setForeground(TEXT_WHITE);
             setBorder(BorderFactory.createCompoundBorder(
                     BorderFactory.createLineBorder(BORDER_COLOR, 1),
-                    BorderFactory.createEmptyBorder(10, 15, 10, 15) // CORREGIDO: createEmptyBorder
+                    BorderFactory.createEmptyBorder(8, 12, 8, 12) // Padding reducido
             ));
             setRenderer(new ModernComboBoxRenderer());
         }
@@ -744,8 +784,8 @@ public class AdminCrearUsuarios extends JInternalFrame {
         public Component getListCellRendererComponent(JList<?> list, Object value, int index,
                                                       boolean isSelected, boolean cellHasFocus) {
             JLabel label = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
-            label.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-            label.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
+            label.setFont(new Font("Segoe UI", Font.PLAIN, 13)); // Fuente reducida
+            label.setBorder(BorderFactory.createEmptyBorder(4, 8, 4, 8)); // Padding reducido
 
             if (isSelected) {
                 label.setBackground(ACCENT_COLOR);
@@ -766,13 +806,13 @@ public class AdminCrearUsuarios extends JInternalFrame {
             super(text);
             this.originalColor = color;
 
-            setFont(new Font("Segoe UI", Font.BOLD, 12));
+            setFont(new Font("Segoe UI", Font.BOLD, 11)); // Fuente reducida
             setBackground(color);
             setForeground(TEXT_WHITE);
             setFocusPainted(false);
             setBorderPainted(false);
             setCursor(new Cursor(Cursor.HAND_CURSOR));
-            setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
+            setBorder(BorderFactory.createEmptyBorder(8, 15, 8, 15)); // Padding reducido
 
             addMouseListener(new MouseAdapter() {
                 @Override
@@ -799,23 +839,23 @@ public class AdminCrearUsuarios extends JInternalFrame {
                                                        int row, int column) {
             JLabel label = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
             label.setHorizontalAlignment(SwingConstants.CENTER);
-            label.setFont(new Font("Segoe UI", Font.BOLD, 11));
+            label.setFont(new Font("Segoe UI", Font.BOLD, 10)); // Fuente reducida
             label.setOpaque(true);
-            label.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
+            label.setBorder(BorderFactory.createEmptyBorder(4, 8, 4, 8)); // Padding reducido
 
             if ("Activo".equals(value)) {
                 label.setBackground(new Color(86, 202, 133, 50));
                 label.setForeground(SUCCESS_COLOR);
                 label.setBorder(BorderFactory.createCompoundBorder(
                         BorderFactory.createLineBorder(SUCCESS_COLOR, 1),
-                        BorderFactory.createEmptyBorder(4, 9, 4, 9)
+                        BorderFactory.createEmptyBorder(3, 7, 3, 7) // Padding reducido
                 ));
             } else {
                 label.setBackground(new Color(255, 118, 117, 50));
                 label.setForeground(DANGER_COLOR);
                 label.setBorder(BorderFactory.createCompoundBorder(
                         BorderFactory.createLineBorder(DANGER_COLOR, 1),
-                        BorderFactory.createEmptyBorder(4, 9, 4, 9)
+                        BorderFactory.createEmptyBorder(3, 7, 3, 7) // Padding reducido
                 ));
             }
 

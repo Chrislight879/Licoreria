@@ -20,9 +20,6 @@ public class AdminVerPeticiones extends JInternalFrame {
     private JButton btnSearch, btnClearFilters, btnAprobar, btnRechazar, btnDespachar, btnRefresh;
     private JLabel lblStats;
 
-    // Paneles de pestañas
-    private JTabbedPane tabbedPane;
-
     // Paleta de colores azules mejorada
     private final Color PRIMARY_COLOR = new Color(70, 130, 180); // SteelBlue - azul principal
     private final Color SECONDARY_COLOR = new Color(100, 149, 237); // CornflowerBlue - azul claro
@@ -51,22 +48,22 @@ public class AdminVerPeticiones extends JInternalFrame {
         setIconifiable(true);
         setDefaultCloseOperation(JInternalFrame.DISPOSE_ON_CLOSE);
 
-        setSize(1200, 800);
+        setSize(1200, 700);
         setLayout(new BorderLayout(10, 10));
 
         // Panel principal con gradiente
         JPanel mainPanel = new GradientPanel();
         mainPanel.setLayout(new BorderLayout(10, 10));
-        mainPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        // Header
+        // Header más compacto
         mainPanel.add(createHeaderPanel(), BorderLayout.NORTH);
 
-        // Filtros
+        // Filtros más compactos
         mainPanel.add(createFiltersPanel(), BorderLayout.CENTER);
 
-        // Contenido principal (pestañas)
-        mainPanel.add(createContentPanel(), BorderLayout.SOUTH);
+        // Tabla con scroll
+        mainPanel.add(createTablePanel(), BorderLayout.SOUTH);
 
         add(mainPanel);
 
@@ -79,7 +76,7 @@ public class AdminVerPeticiones extends JInternalFrame {
         headerPanel.setBackground(new Color(0, 0, 0, 0));
         headerPanel.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(BORDER_COLOR, 1),
-                BorderFactory.createEmptyBorder(15, 20, 15, 20)
+                BorderFactory.createEmptyBorder(8, 15, 8, 15) // Padding reducido
         ));
 
         // Título y estadísticas
@@ -87,21 +84,22 @@ public class AdminVerPeticiones extends JInternalFrame {
         titlePanel.setBackground(new Color(0, 0, 0, 0));
 
         JLabel titleLabel = new JLabel("📈 Peticiones de Stock");
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 18)); // Tamaño reducido
         titleLabel.setForeground(TEXT_WHITE);
 
         lblStats = new JLabel("Cargando estadísticas...");
-        lblStats.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        lblStats.setFont(new Font("Segoe UI", Font.PLAIN, 11)); // Fuente más pequeña
         lblStats.setForeground(new Color(180, 200, 255));
 
         titlePanel.add(titleLabel, BorderLayout.WEST);
         titlePanel.add(lblStats, BorderLayout.EAST);
 
-        // Botones de acción
-        JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        // Botones de acción más compactos
+        JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0)); // Espacio reducido
         actionPanel.setBackground(new Color(0, 0, 0, 0));
 
         btnRefresh = new ModernButton("🔄 Actualizar", ACCENT_COLOR);
+        btnRefresh.setPreferredSize(new Dimension(120, 32)); // Botón más compacto
         btnRefresh.addActionListener(e -> refreshData());
 
         actionPanel.add(btnRefresh);
@@ -120,10 +118,10 @@ public class AdminVerPeticiones extends JInternalFrame {
                         BorderFactory.createLineBorder(SECONDARY_COLOR, 2),
                         "Filtros y Búsqueda",
                         0, 0,
-                        new Font("Segoe UI", Font.BOLD, 14),
+                        new Font("Segoe UI", Font.BOLD, 13), // Fuente reducida
                         TEXT_WHITE
                 ),
-                BorderFactory.createEmptyBorder(20, 20, 20, 20)
+                BorderFactory.createEmptyBorder(12, 15, 12, 15) // Padding reducido
         ));
 
         // Panel principal de filtros
@@ -132,18 +130,19 @@ public class AdminVerPeticiones extends JInternalFrame {
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.insets = new Insets(4, 4, 4, 4); // Espaciado reducido
         gbc.weightx = 1.0;
 
         // Búsqueda general
         gbc.gridx = 0; gbc.gridy = 0; gbc.gridwidth = 1;
         JLabel lblSearch = new JLabel("Búsqueda:");
-        lblSearch.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lblSearch.setFont(new Font("Segoe UI", Font.BOLD, 12)); // Fuente reducida
         lblSearch.setForeground(TEXT_WHITE);
         mainFiltersPanel.add(lblSearch, gbc);
 
         gbc.gridx = 1; gbc.gridy = 0; gbc.gridwidth = 2;
         txtSearch = new ModernTextField("Buscar por producto, usuario o observaciones...");
+        txtSearch.setPreferredSize(new Dimension(300, 32)); // Altura reducida
         txtSearch.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
             public void insertUpdate(javax.swing.event.DocumentEvent e) { filterData(); }
             public void removeUpdate(javax.swing.event.DocumentEvent e) { filterData(); }
@@ -154,12 +153,13 @@ public class AdminVerPeticiones extends JInternalFrame {
         // Filtro por estado
         gbc.gridx = 3; gbc.gridy = 0;
         JLabel lblEstado = new JLabel("Filtrar por Estado:");
-        lblEstado.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lblEstado.setFont(new Font("Segoe UI", Font.BOLD, 12)); // Fuente reducida
         lblEstado.setForeground(TEXT_WHITE);
         mainFiltersPanel.add(lblEstado, gbc);
 
         gbc.gridx = 4; gbc.gridy = 0;
         cmbEstadoFilter = new ModernComboBox();
+        cmbEstadoFilter.setPreferredSize(new Dimension(150, 32)); // Altura reducida
         cmbEstadoFilter.addItem("Todos los estados");
         cmbEstadoFilter.addItem("pendiente");
         cmbEstadoFilter.addItem("aprobada");
@@ -170,30 +170,34 @@ public class AdminVerPeticiones extends JInternalFrame {
 
         // Botones de acción
         gbc.gridx = 0; gbc.gridy = 1; gbc.gridwidth = 5;
-        gbc.insets = new Insets(15, 5, 5, 5);
+        gbc.insets = new Insets(10, 4, 4, 4);
 
-        JPanel actionButtonsPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
+        JPanel actionButtonsPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 0));
         actionButtonsPanel.setBackground(CARD_BACKGROUND);
 
         btnAprobar = new ModernButton("✅ Aprobar", SUCCESS_COLOR);
+        btnAprobar.setPreferredSize(new Dimension(100, 32)); // Botones más compactos
         btnAprobar.setEnabled(false);
         btnAprobar.addActionListener(e -> aprobarPeticion());
 
         btnRechazar = new ModernButton("❌ Rechazar", DANGER_COLOR);
+        btnRechazar.setPreferredSize(new Dimension(100, 32));
         btnRechazar.setEnabled(false);
         btnRechazar.addActionListener(e -> rechazarPeticion());
 
         btnDespachar = new ModernButton("🚚 Despachar", INFO_COLOR);
+        btnDespachar.setPreferredSize(new Dimension(100, 32));
         btnDespachar.setEnabled(false);
         btnDespachar.addActionListener(e -> despacharPeticion());
 
-        btnClearFilters = new ModernButton("🧹 Limpiar Filtros", new Color(149, 165, 166));
+        btnClearFilters = new ModernButton("🧹 Limpiar", new Color(149, 165, 166));
+        btnClearFilters.setPreferredSize(new Dimension(90, 32));
         btnClearFilters.addActionListener(e -> clearFilters());
 
         actionButtonsPanel.add(btnAprobar);
         actionButtonsPanel.add(btnRechazar);
         actionButtonsPanel.add(btnDespachar);
-        actionButtonsPanel.add(Box.createHorizontalStrut(20));
+        actionButtonsPanel.add(Box.createHorizontalStrut(15));
         actionButtonsPanel.add(btnClearFilters);
 
         mainFiltersPanel.add(actionButtonsPanel, gbc);
@@ -203,48 +207,21 @@ public class AdminVerPeticiones extends JInternalFrame {
         return filtersPanel;
     }
 
-    private JPanel createContentPanel() {
-        JPanel contentPanel = new JPanel(new BorderLayout());
-        contentPanel.setBackground(CARD_BACKGROUND);
-        contentPanel.setBorder(BorderFactory.createCompoundBorder(
+    private JPanel createTablePanel() {
+        JPanel tablePanel = new JPanel(new BorderLayout());
+        tablePanel.setBackground(CARD_BACKGROUND);
+        tablePanel.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createTitledBorder(
                         BorderFactory.createLineBorder(SECONDARY_COLOR, 2),
-                        "Gestión de Peticiones",
+                        "Lista de Peticiones",
                         0, 0,
-                        new Font("Segoe UI", Font.BOLD, 14),
+                        new Font("Segoe UI", Font.BOLD, 13), // Fuente reducida
                         TEXT_WHITE
                 ),
-                BorderFactory.createEmptyBorder(20, 20, 20, 20)
+                BorderFactory.createEmptyBorder(12, 12, 12, 12) // Padding reducido
         ));
 
-        // Crear pestañas
-        tabbedPane = new JTabbedPane();
-        tabbedPane.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        tabbedPane.setBackground(CARD_BACKGROUND);
-        tabbedPane.setForeground(TEXT_WHITE);
-
-        // Pestaña de todas las peticiones
-        tabbedPane.addTab("📋 Todas las Peticiones", createAllPeticionesTab());
-
-        // Pestaña de peticiones pendientes
-        tabbedPane.addTab("⏳ Pendientes", createPendingPeticionesTab());
-
-        // Pestaña de peticiones aprobadas
-        tabbedPane.addTab("✅ Aprobadas", createApprovedPeticionesTab());
-
-        // Pestaña de estadísticas
-        tabbedPane.addTab("📊 Estadísticas", createStatsTab());
-
-        contentPanel.add(tabbedPane, BorderLayout.CENTER);
-
-        return contentPanel;
-    }
-
-    private JPanel createAllPeticionesTab() {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(CARD_BACKGROUND);
-
-        // Crear tabla
+        // Modelo de tabla
         String[] columnNames = {
                 "ID", "Producto", "Solicitante", "Cantidad", "Unidad",
                 "Fecha Solicitud", "Estado", "Stock Bodega", "Observaciones"
@@ -271,84 +248,45 @@ public class AdminVerPeticiones extends JInternalFrame {
         sorter = new TableRowSorter<>(tableModel);
         peticionesTable.setRowSorter(sorter);
 
-        // Configurar tabla
+        // Configurar tabla más compacta
         setupTable();
 
+        // Scroll pane con información
         JScrollPane scrollPane = new JScrollPane(peticionesTable);
         scrollPane.setBorder(BorderFactory.createLineBorder(BORDER_COLOR, 1));
         scrollPane.getViewport().setBackground(new Color(50, 65, 95));
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16); // Scroll más suave
 
-        // Panel de información
-        JPanel infoPanel = createInfoPanel();
+        // Panel de información más compacto
+        JPanel infoPanel = new JPanel(new BorderLayout());
+        infoPanel.setBackground(CARD_BACKGROUND);
+        infoPanel.setBorder(BorderFactory.createEmptyBorder(6, 0, 0, 0)); // Padding reducido
 
-        panel.add(scrollPane, BorderLayout.CENTER);
-        panel.add(infoPanel, BorderLayout.SOUTH);
+        JLabel infoLabel = new JLabel("💡 Seleccione una petición para realizar acciones. Use los filtros para encontrar peticiones específicas.");
+        infoLabel.setFont(new Font("Segoe UI", Font.PLAIN, 10)); // Fuente más pequeña
+        infoLabel.setForeground(new Color(180, 200, 255));
 
-        return panel;
-    }
+        JLabel countLabel = new JLabel();
+        countLabel.setFont(new Font("Segoe UI", Font.BOLD, 10)); // Fuente más pequeña
+        countLabel.setForeground(TEXT_WHITE);
 
-    private JPanel createPendingPeticionesTab() {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(CARD_BACKGROUND);
-        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        // Actualizar contador cuando cambie la tabla
+        tableModel.addTableModelListener(e -> {
+            countLabel.setText("Peticiones mostradas: " + tableModel.getRowCount());
+        });
 
-        JLabel label = new JLabel(
-                "<html><div style='text-align: center; color: #BDC3C7;'>" +
-                        "<h3>⏳ Peticiones Pendientes</h3>" +
-                        "<p>Vista especializada para peticiones que requieren atención inmediata</p>" +
-                        "<p><small>Esta vista mostrará solo las peticiones en estado 'pendiente'</small></p>" +
-                        "</div></html>",
-                SwingConstants.CENTER
-        );
-        label.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        infoPanel.add(infoLabel, BorderLayout.WEST);
+        infoPanel.add(countLabel, BorderLayout.EAST);
 
-        panel.add(label, BorderLayout.CENTER);
+        tablePanel.add(scrollPane, BorderLayout.CENTER);
+        tablePanel.add(infoPanel, BorderLayout.SOUTH);
 
-        return panel;
-    }
-
-    private JPanel createApprovedPeticionesTab() {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(CARD_BACKGROUND);
-        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-
-        JLabel label = new JLabel(
-                "<html><div style='text-align: center; color: #BDC3C7;'>" +
-                        "<h3>✅ Peticiones Aprobadas</h3>" +
-                        "<p>Vista de peticiones aprobadas listas para despacho</p>" +
-                        "<p><small>Gestión de peticiones que han sido aprobadas y están listas para enviar</small></p>" +
-                        "</div></html>",
-                SwingConstants.CENTER
-        );
-        label.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-
-        panel.add(label, BorderLayout.CENTER);
-
-        return panel;
-    }
-
-    private JPanel createStatsTab() {
-        JPanel panel = new JPanel(new GridLayout(2, 2, 15, 15));
-        panel.setBackground(CARD_BACKGROUND);
-        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-
-        // Cards de estadísticas
-        StatCard totalCard = new StatCard("📦 Total Peticiones", "0", "Todas las peticiones del sistema", PRIMARY_COLOR);
-        StatCard pendingCard = new StatCard("⏳ Pendientes", "0", "Esperando aprobación", WARNING_COLOR);
-        StatCard approvedCard = new StatCard("✅ Aprobadas", "0", "Listas para despacho", SUCCESS_COLOR);
-        StatCard rejectedCard = new StatCard("❌ Rechazadas", "0", "Peticiones rechazadas", DANGER_COLOR);
-
-        panel.add(totalCard);
-        panel.add(pendingCard);
-        panel.add(approvedCard);
-        panel.add(rejectedCard);
-
-        return panel;
+        return tablePanel;
     }
 
     private void setupTable() {
-        peticionesTable.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        peticionesTable.setRowHeight(35);
+        peticionesTable.setFont(new Font("Segoe UI", Font.PLAIN, 11)); // Fuente reducida
+        peticionesTable.setRowHeight(30); // Altura de fila reducida
         peticionesTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         peticionesTable.setIntercellSpacing(new Dimension(0, 0));
         peticionesTable.setShowGrid(false);
@@ -359,27 +297,27 @@ public class AdminVerPeticiones extends JInternalFrame {
         peticionesTable.setSelectionBackground(ACCENT_COLOR);
         peticionesTable.setSelectionForeground(TEXT_WHITE);
 
-        // Header personalizado
+        // Header personalizado más compacto
         JTableHeader header = peticionesTable.getTableHeader();
-        header.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        header.setFont(new Font("Segoe UI", Font.BOLD, 12)); // Fuente reducida
         header.setBackground(PRIMARY_COLOR);
         header.setForeground(TEXT_WHITE);
-        header.setPreferredSize(new Dimension(header.getWidth(), 40));
+        header.setPreferredSize(new Dimension(header.getWidth(), 35)); // Altura reducida
 
-        // Anchos de columnas
-        peticionesTable.getColumnModel().getColumn(0).setPreferredWidth(60);  // ID
-        peticionesTable.getColumnModel().getColumn(1).setPreferredWidth(150); // Producto
-        peticionesTable.getColumnModel().getColumn(2).setPreferredWidth(120); // Solicitante
-        peticionesTable.getColumnModel().getColumn(3).setPreferredWidth(80);  // Cantidad
-        peticionesTable.getColumnModel().getColumn(4).setPreferredWidth(80);  // Unidad
-        peticionesTable.getColumnModel().getColumn(5).setPreferredWidth(120); // Fecha
-        peticionesTable.getColumnModel().getColumn(6).setPreferredWidth(100); // Estado
-        peticionesTable.getColumnModel().getColumn(7).setPreferredWidth(100); // Stock Bodega
-        peticionesTable.getColumnModel().getColumn(8).setPreferredWidth(200); // Observaciones
+        // Anchos de columnas optimizados
+        peticionesTable.getColumnModel().getColumn(0).setPreferredWidth(50);  // ID
+        peticionesTable.getColumnModel().getColumn(1).setPreferredWidth(140); // Producto
+        peticionesTable.getColumnModel().getColumn(2).setPreferredWidth(110); // Solicitante
+        peticionesTable.getColumnModel().getColumn(3).setPreferredWidth(70);  // Cantidad
+        peticionesTable.getColumnModel().getColumn(4).setPreferredWidth(70);  // Unidad
+        peticionesTable.getColumnModel().getColumn(5).setPreferredWidth(110); // Fecha
+        peticionesTable.getColumnModel().getColumn(6).setPreferredWidth(90);  // Estado
+        peticionesTable.getColumnModel().getColumn(7).setPreferredWidth(90);  // Stock Bodega
+        peticionesTable.getColumnModel().getColumn(8).setPreferredWidth(180); // Observaciones
 
         // Renderers personalizados
-        peticionesTable.getColumnModel().getColumn(6).setCellRenderer((TableCellRenderer) new EstadoPeticionRenderer());
-        peticionesTable.getColumnModel().getColumn(7).setCellRenderer((TableCellRenderer) new StockRenderer());
+        peticionesTable.getColumnModel().getColumn(6).setCellRenderer(new EstadoPeticionRenderer());
+        peticionesTable.getColumnModel().getColumn(7).setCellRenderer(new StockRenderer());
 
         // Listener para selección
         peticionesTable.getSelectionModel().addListSelectionListener(e -> {
@@ -387,30 +325,6 @@ public class AdminVerPeticiones extends JInternalFrame {
                 updateButtonStates();
             }
         });
-    }
-
-    private JPanel createInfoPanel() {
-        JPanel infoPanel = new JPanel(new BorderLayout());
-        infoPanel.setBackground(CARD_BACKGROUND);
-        infoPanel.setBorder(BorderFactory.createEmptyBorder(10, 0, 0, 0));
-
-        JLabel infoLabel = new JLabel("💡 Seleccione una petición para realizar acciones. Use los filtros para encontrar peticiones específicas.");
-        infoLabel.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        infoLabel.setForeground(new Color(180, 200, 255));
-
-        JLabel countLabel = new JLabel();
-        countLabel.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        countLabel.setForeground(TEXT_WHITE);
-
-        // Actualizar contador
-        tableModel.addTableModelListener(e -> {
-            countLabel.setText("Peticiones mostradas: " + tableModel.getRowCount());
-        });
-
-        infoPanel.add(infoLabel, BorderLayout.WEST);
-        infoPanel.add(countLabel, BorderLayout.EAST);
-
-        return infoPanel;
     }
 
     private void loadPeticionesData() {
@@ -697,10 +611,10 @@ public class AdminVerPeticiones extends JInternalFrame {
 
         public ModernTextField(String placeholder) {
             this.placeholder = placeholder;
-            setFont(new Font("Segoe UI", Font.PLAIN, 14));
+            setFont(new Font("Segoe UI", Font.PLAIN, 13)); // Fuente reducida
             setBorder(BorderFactory.createCompoundBorder(
                     BorderFactory.createLineBorder(BORDER_COLOR, 1),
-                    BorderFactory.createEmptyBorder(10, 15, 10, 15)
+                    BorderFactory.createEmptyBorder(8, 12, 8, 12) // Padding reducido
             ));
             setBackground(new Color(50, 65, 95));
             setForeground(TEXT_WHITE);
@@ -732,12 +646,12 @@ public class AdminVerPeticiones extends JInternalFrame {
 
     class ModernComboBox extends JComboBox<String> {
         public ModernComboBox() {
-            setFont(new Font("Segoe UI", Font.PLAIN, 14));
+            setFont(new Font("Segoe UI", Font.PLAIN, 13)); // Fuente reducida
             setBackground(new Color(50, 65, 95));
             setForeground(TEXT_WHITE);
             setBorder(BorderFactory.createCompoundBorder(
                     BorderFactory.createLineBorder(BORDER_COLOR, 1),
-                    BorderFactory.createEmptyBorder(8, 12, 8, 12)
+                    BorderFactory.createEmptyBorder(8, 12, 8, 12) // Padding reducido
             ));
             setRenderer(new ModernComboBoxRenderer());
         }
@@ -748,8 +662,8 @@ public class AdminVerPeticiones extends JInternalFrame {
         public Component getListCellRendererComponent(JList<?> list, Object value, int index,
                                                       boolean isSelected, boolean cellHasFocus) {
             JLabel label = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
-            label.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-            label.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
+            label.setFont(new Font("Segoe UI", Font.PLAIN, 13)); // Fuente reducida
+            label.setBorder(BorderFactory.createEmptyBorder(4, 8, 4, 8)); // Padding reducido
 
             if (isSelected) {
                 label.setBackground(ACCENT_COLOR);
@@ -770,13 +684,13 @@ public class AdminVerPeticiones extends JInternalFrame {
             super(text);
             this.originalColor = color;
 
-            setFont(new Font("Segoe UI", Font.BOLD, 12));
+            setFont(new Font("Segoe UI", Font.BOLD, 11)); // Fuente reducida
             setBackground(color);
             setForeground(TEXT_WHITE);
             setFocusPainted(false);
             setBorderPainted(false);
             setCursor(new Cursor(Cursor.HAND_CURSOR));
-            setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
+            setBorder(BorderFactory.createEmptyBorder(8, 15, 8, 15)); // Padding reducido
 
             addMouseListener(new MouseAdapter() {
                 @Override
@@ -803,9 +717,9 @@ public class AdminVerPeticiones extends JInternalFrame {
                                                        int row, int column) {
             JLabel label = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
             label.setHorizontalAlignment(SwingConstants.CENTER);
-            label.setFont(new Font("Segoe UI", Font.BOLD, 11));
+            label.setFont(new Font("Segoe UI", Font.BOLD, 10)); // Fuente reducida
             label.setOpaque(true);
-            label.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
+            label.setBorder(BorderFactory.createEmptyBorder(4, 8, 4, 8)); // Padding reducido
 
             String estado = (String) value;
             switch (estado) {
@@ -832,7 +746,7 @@ public class AdminVerPeticiones extends JInternalFrame {
 
             label.setBorder(BorderFactory.createCompoundBorder(
                     BorderFactory.createLineBorder(label.getForeground(), 1),
-                    BorderFactory.createEmptyBorder(4, 9, 4, 9)
+                    BorderFactory.createEmptyBorder(3, 7, 3, 7) // Padding reducido
             ));
 
             if (isSelected) {
@@ -850,7 +764,7 @@ public class AdminVerPeticiones extends JInternalFrame {
                                                        int row, int column) {
             JLabel label = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
             label.setHorizontalAlignment(SwingConstants.RIGHT);
-            label.setFont(new Font("Segoe UI", Font.BOLD, 11));
+            label.setFont(new Font("Segoe UI", Font.BOLD, 10)); // Fuente reducida
             label.setBackground(new Color(50, 65, 95));
             label.setForeground(TEXT_WHITE);
 
@@ -874,62 +788,6 @@ public class AdminVerPeticiones extends JInternalFrame {
             }
 
             return label;
-        }
-    }
-
-    class StatCard extends JPanel {
-        public StatCard(String title, String value, String description, Color color) {
-            setLayout(new BorderLayout());
-            setBackground(CARD_BACKGROUND);
-            setBorder(BorderFactory.createCompoundBorder(
-                    BorderFactory.createLineBorder(BORDER_COLOR, 1),
-                    BorderFactory.createEmptyBorder(20, 20, 20, 20)
-            ));
-
-            // Header con icono y título
-            JPanel headerPanel = new JPanel(new BorderLayout());
-            headerPanel.setBackground(CARD_BACKGROUND);
-
-            JLabel titleLabel = new JLabel(title);
-            titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
-            titleLabel.setForeground(TEXT_WHITE);
-
-            headerPanel.add(titleLabel, BorderLayout.CENTER);
-
-            // Valor
-            JLabel valueLabel = new JLabel(value);
-            valueLabel.setFont(new Font("Segoe UI", Font.BOLD, 32));
-            valueLabel.setForeground(color);
-            valueLabel.setHorizontalAlignment(SwingConstants.CENTER);
-
-            // Descripción
-            JLabel descLabel = new JLabel(description);
-            descLabel.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-            descLabel.setForeground(new Color(180, 200, 255));
-            descLabel.setHorizontalAlignment(SwingConstants.CENTER);
-
-            add(headerPanel, BorderLayout.NORTH);
-            add(valueLabel, BorderLayout.CENTER);
-            add(descLabel, BorderLayout.SOUTH);
-
-            // Efecto hover
-            addMouseListener(new MouseAdapter() {
-                @Override
-                public void mouseEntered(MouseEvent e) {
-                    setBorder(BorderFactory.createCompoundBorder(
-                            BorderFactory.createLineBorder(color, 2),
-                            BorderFactory.createEmptyBorder(19, 19, 19, 19)
-                    ));
-                }
-
-                @Override
-                public void mouseExited(MouseEvent e) {
-                    setBorder(BorderFactory.createCompoundBorder(
-                            BorderFactory.createLineBorder(BORDER_COLOR, 1),
-                            BorderFactory.createEmptyBorder(20, 20, 20, 20)
-                    ));
-                }
-            });
         }
     }
 

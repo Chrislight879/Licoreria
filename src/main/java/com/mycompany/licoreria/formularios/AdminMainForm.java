@@ -149,18 +149,15 @@ public class AdminMainForm extends JInternalFrame {
 
         sidebar.add(sidebarTitle);
 
-        // Botones del sidebar
+        // Botones del sidebar - Solo los módulos necesarios
         String[] menuItems = {
                 "📊 Dashboard Principal",
                 "👥 Gestión de Usuarios",
-                "📦 Gestión de Productos",
                 "📋 Historial del Sistema",
-                "📈 Peticiones de Stock",
-                "📊 Reportes y Estadísticas",
-                "⚙️ Configuración del Sistema"
+                "📈 Peticiones de Stock"
         };
 
-        String[] icons = {"📊", "👥", "📦", "📋", "📈", "📊", "⚙️"};
+        String[] icons = {"📊", "👥", "📋", "📈"};
 
         for (int i = 0; i < menuItems.length; i++) {
             JButton menuButton = createMenuButton(menuItems[i], icons[i]);
@@ -425,20 +422,11 @@ public class AdminMainForm extends JInternalFrame {
             case 1: // Gestión de Usuarios
                 abrirGestionUsuarios();
                 break;
-            case 2: // Gestión de Productos
-                mostrarMensajeEnDesarrollo("Gestión de Productos");
-                break;
-            case 3: // Historial del Sistema
+            case 2: // Historial del Sistema
                 abrirHistorialSistema();
                 break;
-            case 4: // Peticiones de Stock
+            case 3: // Peticiones de Stock
                 abrirPeticionesStock();
-                break;
-            case 5: // Reportes
-                mostrarMensajeEnDesarrollo("Reportes y Estadísticas");
-                break;
-            case 6: // Configuración
-                mostrarMensajeEnDesarrollo("Configuración del Sistema");
                 break;
         }
 
@@ -462,15 +450,50 @@ public class AdminMainForm extends JInternalFrame {
     }
 
     private void loadDashboardData() {
-        // Simular carga de datos
-        Timer timer = new Timer(1000, e -> {
+        // Cargar datos reales del dashboard
+        try {
+            // Simular datos reales - en una implementación real aquí irían las consultas a la base de datos
+            int totalUsers = obtenerTotalUsuarios();
+            int activeUsers = obtenerUsuariosActivos();
+            int pendingRequests = obtenerPeticionesPendientes();
+            int lowStock = obtenerProductosStockBajo();
+
+            lblTotalUsers.setText(String.valueOf(totalUsers));
+            lblActiveUsers.setText(String.valueOf(activeUsers));
+            lblPendingRequests.setText(String.valueOf(pendingRequests));
+            lblLowStock.setText(String.valueOf(lowStock));
+
+        } catch (Exception e) {
+            // En caso de error, mostrar datos por defecto
             lblTotalUsers.setText("12");
             lblActiveUsers.setText("3");
             lblPendingRequests.setText("5");
             lblLowStock.setText("7");
-        });
-        timer.setRepeats(false);
-        timer.start();
+
+            System.err.println("Error cargando datos del dashboard: " + e.getMessage());
+        }
+    }
+
+    // Métodos para obtener datos reales (simulados por ahora)
+    private int obtenerTotalUsuarios() {
+        // Aquí iría la consulta real a la base de datos
+        // Por ahora retornamos valores simulados
+        return 15;
+    }
+
+    private int obtenerUsuariosActivos() {
+        // Consulta para usuarios con sesión activa
+        return 4;
+    }
+
+    private int obtenerPeticionesPendientes() {
+        // Consulta para peticiones de stock pendientes
+        return 3;
+    }
+
+    private int obtenerProductosStockBajo() {
+        // Consulta para productos con stock bajo
+        return 8;
     }
 
     private void confirmarLogout() {
@@ -506,19 +529,6 @@ public class AdminMainForm extends JInternalFrame {
         } catch (Exception e) {
             // Si falla el centrado, continuar sin él
         }
-    }
-
-    private void mostrarMensajeEnDesarrollo(String modulo) {
-        JOptionPane.showMessageDialog(this,
-                "<html><div style='text-align: center; padding: 10px;'>" +
-                        "<div style='background: #2C3E50; padding: 15px; border-radius: 8px; border-left: 4px solid #3498DB;'>" +
-                        "<div style='color: #FFFFFF; font-weight: bold; margin-bottom: 5px;'>🚧 Módulo en Desarrollo</div>" +
-                        "<div style='color: #ECF0F1;'>El módulo <b>'" + modulo + "'</b> está actualmente en desarrollo.</div>" +
-                        "<div style='color: #BDC3C7; font-size: 12px; margin-top: 8px;'>Estará disponible en próximas actualizaciones del sistema.</div>" +
-                        "</div>" +
-                        "</div></html>",
-                "Módulo en desarrollo",
-                JOptionPane.INFORMATION_MESSAGE);
     }
 
     // Clase para las cards de estadísticas
