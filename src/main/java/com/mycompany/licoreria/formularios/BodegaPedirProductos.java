@@ -6,7 +6,6 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
-import javax.swing.table.TableCellRenderer;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.List;
@@ -14,30 +13,30 @@ import java.util.List;
 public class BodegaPedirProductos extends JInternalFrame {
     private BodegaController bodegaController;
 
-    // Componentes de la UI
+    // Componentes de la UI - CORREGIDO: lblCostoTotal declarado una sola vez
     private JTable productosTable;
     private DefaultTableModel tableModel;
     private JTextField txtSearch, txtCantidadSolicitada;
     private JTextArea txtObservaciones;
     private JComboBox<String> cmbProductos;
-    private JButton btnSearch, btnSolicitar, btnLimpiar, btnVerReabastecer;
+    private JButton btnSolicitar, btnLimpiar, btnVerReabastecer;
     private JLabel lblProductoSeleccionado, lblStockActual, lblCostoUnitario, lblCostoTotal;
 
     // Producto seleccionado
     private Producto productoSeleccionado;
 
     // Paleta de colores azules mejorada
-    private final Color PRIMARY_COLOR = new Color(70, 130, 180); // SteelBlue - azul principal
-    private final Color SECONDARY_COLOR = new Color(100, 149, 237); // CornflowerBlue - azul claro
-    private final Color ACCENT_COLOR = new Color(30, 144, 255); // DodgerBlue - azul brillante
-    private final Color BACKGROUND_COLOR = new Color(30, 40, 60); // Azul oscuro para fondo
-    private final Color CARD_BACKGROUND = new Color(40, 55, 80); // Azul medio para tarjetas
-    private final Color BORDER_COLOR = new Color(100, 130, 180); // Borde azul
-    private final Color TEXT_WHITE = Color.WHITE; // TODOS LOS TEXTOS EN BLANCO
-    private final Color SUCCESS_COLOR = new Color(86, 202, 133); // Verde azulado para éxitos
-    private final Color WARNING_COLOR = new Color(255, 193, 87); // Amarillo dorado para advertencias
-    private final Color DANGER_COLOR = new Color(255, 118, 117); // Rojo coral para peligros
-    private final Color INFO_COLOR = new Color(155, 89, 182); // Púrpura para información
+    private final Color PRIMARY_COLOR = new Color(70, 130, 180);
+    private final Color SECONDARY_COLOR = new Color(100, 149, 237);
+    private final Color ACCENT_COLOR = new Color(30, 144, 255);
+    private final Color BACKGROUND_COLOR = new Color(30, 40, 60);
+    private final Color CARD_BACKGROUND = new Color(40, 55, 80);
+    private final Color BORDER_COLOR = new Color(100, 130, 180);
+    private final Color TEXT_WHITE = Color.WHITE;
+    private final Color SUCCESS_COLOR = new Color(86, 202, 133);
+    private final Color WARNING_COLOR = new Color(255, 193, 87);
+    private final Color DANGER_COLOR = new Color(255, 118, 117);
+    private final Color INFO_COLOR = new Color(155, 89, 182);
 
     public BodegaPedirProductos() {
         initComponents();
@@ -61,9 +60,9 @@ public class BodegaPedirProductos extends JInternalFrame {
         // Panel principal con gradiente
         JPanel mainPanel = new GradientPanel();
         mainPanel.setLayout(new BorderLayout(10, 10));
-        mainPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        // Header
+        // Header más compacto
         mainPanel.add(createHeaderPanel(), BorderLayout.NORTH);
 
         // Content (Form + Table)
@@ -91,7 +90,7 @@ public class BodegaPedirProductos extends JInternalFrame {
         headerPanel.setBackground(new Color(0, 0, 0, 0));
         headerPanel.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(BORDER_COLOR, 1),
-                BorderFactory.createEmptyBorder(15, 20, 15, 20)
+                BorderFactory.createEmptyBorder(8, 15, 8, 15)
         ));
 
         // Título
@@ -99,30 +98,31 @@ public class BodegaPedirProductos extends JInternalFrame {
         titlePanel.setBackground(new Color(0, 0, 0, 0));
 
         JLabel iconLabel = new JLabel("📞");
-        iconLabel.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 24));
+        iconLabel.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 20));
         iconLabel.setForeground(TEXT_WHITE);
 
         JLabel titleLabel = new JLabel("Solicitar Productos a Proveedores");
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
         titleLabel.setForeground(TEXT_WHITE);
 
         titlePanel.add(iconLabel);
-        titlePanel.add(Box.createHorizontalStrut(10));
+        titlePanel.add(Box.createHorizontalStrut(8));
         titlePanel.add(titleLabel);
 
         // Barra de búsqueda
-        JPanel searchPanel = new JPanel(new BorderLayout(10, 0));
+        JPanel searchPanel = new JPanel(new BorderLayout(8, 0));
         searchPanel.setBackground(new Color(0, 0, 0, 0));
 
         txtSearch = new ModernTextField("Buscar productos para reabastecer...");
-        txtSearch.setPreferredSize(new Dimension(250, 35));
+        txtSearch.setPreferredSize(new Dimension(200, 32));
         txtSearch.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
             public void insertUpdate(javax.swing.event.DocumentEvent e) { filterTableData(); }
             public void removeUpdate(javax.swing.event.DocumentEvent e) { filterTableData(); }
             public void changedUpdate(javax.swing.event.DocumentEvent e) { filterTableData(); }
         });
 
-        btnVerReabastecer = new ModernButton("🔄 Ver Necesidades", INFO_COLOR);
+        btnVerReabastecer = new ModernButton("🔄 Actualizar", INFO_COLOR);
+        btnVerReabastecer.setPreferredSize(new Dimension(120, 32));
         btnVerReabastecer.addActionListener(e -> loadProductosParaReabastecer());
 
         searchPanel.add(txtSearch, BorderLayout.CENTER);
@@ -142,10 +142,10 @@ public class BodegaPedirProductos extends JInternalFrame {
                         BorderFactory.createLineBorder(SECONDARY_COLOR, 2),
                         "Formulario de Solicitud",
                         0, 0,
-                        new Font("Segoe UI", Font.BOLD, 14),
+                        new Font("Segoe UI", Font.BOLD, 13),
                         TEXT_WHITE
                 ),
-                BorderFactory.createEmptyBorder(20, 20, 20, 20)
+                BorderFactory.createEmptyBorder(15, 15, 15, 15)
         ));
 
         // Panel principal del formulario
@@ -154,18 +154,19 @@ public class BodegaPedirProductos extends JInternalFrame {
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.insets = new Insets(8, 8, 8, 8);
+        gbc.insets = new Insets(6, 6, 6, 6);
         gbc.weightx = 1.0;
 
         // Selección de producto
         gbc.gridx = 0; gbc.gridy = 0; gbc.gridwidth = 1;
-        JLabel lblProducto = new JLabel("Seleccionar Producto:");
-        lblProducto.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        JLabel lblProducto = new JLabel("Producto:");
+        lblProducto.setFont(new Font("Segoe UI", Font.BOLD, 12));
         lblProducto.setForeground(TEXT_WHITE);
         mainFormPanel.add(lblProducto, gbc);
 
         gbc.gridx = 1; gbc.gridy = 0; gbc.gridwidth = 3;
         cmbProductos = new ModernComboBox();
+        cmbProductos.setPreferredSize(new Dimension(200, 32));
         cmbProductos.addActionListener(e -> onProductoSeleccionado());
         mainFormPanel.add(cmbProductos, gbc);
 
@@ -176,13 +177,14 @@ public class BodegaPedirProductos extends JInternalFrame {
 
         // Cantidad solicitada
         gbc.gridx = 0; gbc.gridy = 2;
-        JLabel lblCantidad = new JLabel("Cantidad a Solicitar:");
-        lblCantidad.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        JLabel lblCantidad = new JLabel("Cantidad:");
+        lblCantidad.setFont(new Font("Segoe UI", Font.BOLD, 12));
         lblCantidad.setForeground(TEXT_WHITE);
         mainFormPanel.add(lblCantidad, gbc);
 
         gbc.gridx = 1; gbc.gridy = 2;
         txtCantidadSolicitada = new ModernTextField("Ingrese la cantidad");
+        txtCantidadSolicitada.setPreferredSize(new Dimension(150, 32));
         txtCantidadSolicitada.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
             public void insertUpdate(javax.swing.event.DocumentEvent e) { calcularCostoTotal(); }
             public void removeUpdate(javax.swing.event.DocumentEvent e) { calcularCostoTotal(); }
@@ -190,42 +192,42 @@ public class BodegaPedirProductos extends JInternalFrame {
         });
         mainFormPanel.add(txtCantidadSolicitada, gbc);
 
-        // Costo unitario y total
+        // Costo unitario y total - CORREGIDO: No redeclarar lblCostoTotal
         gbc.gridx = 2; gbc.gridy = 2;
-        JLabel lblCostoUnit = new JLabel("Costo Unitario:");
-        lblCostoUnit.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        JLabel lblCostoUnit = new JLabel("Costo Unit:");
+        lblCostoUnit.setFont(new Font("Segoe UI", Font.BOLD, 12));
         lblCostoUnit.setForeground(TEXT_WHITE);
         mainFormPanel.add(lblCostoUnit, gbc);
 
         gbc.gridx = 3; gbc.gridy = 2;
         lblCostoUnitario = new JLabel("$0.00");
-        lblCostoUnitario.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lblCostoUnitario.setFont(new Font("Segoe UI", Font.BOLD, 12));
         lblCostoUnitario.setForeground(SUCCESS_COLOR);
         mainFormPanel.add(lblCostoUnitario, gbc);
 
         gbc.gridx = 2; gbc.gridy = 3;
-        JLabel lblCostoTotal = new JLabel("Costo Total:");
-        lblCostoTotal.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        lblCostoTotal.setForeground(TEXT_WHITE);
-        mainFormPanel.add(lblCostoTotal, gbc);
+        JLabel lblCostoTotalLabel = new JLabel("Costo Total:"); // Cambiado el nombre
+        lblCostoTotalLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        lblCostoTotalLabel.setForeground(TEXT_WHITE);
+        mainFormPanel.add(lblCostoTotalLabel, gbc);
 
         gbc.gridx = 3; gbc.gridy = 3;
-        lblCostoTotal = new JLabel("$0.00");
-        lblCostoTotal.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        lblCostoTotal = new JLabel("$0.00"); // Usando la variable ya declarada
+        lblCostoTotal.setFont(new Font("Segoe UI", Font.BOLD, 14));
         lblCostoTotal.setForeground(ACCENT_COLOR);
         mainFormPanel.add(lblCostoTotal, gbc);
 
         // Observaciones
         gbc.gridx = 0; gbc.gridy = 4;
         JLabel lblObservaciones = new JLabel("Observaciones:");
-        lblObservaciones.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lblObservaciones.setFont(new Font("Segoe UI", Font.BOLD, 12));
         lblObservaciones.setForeground(TEXT_WHITE);
         mainFormPanel.add(lblObservaciones, gbc);
 
         gbc.gridx = 1; gbc.gridy = 4; gbc.gridwidth = 3;
         gbc.fill = GridBagConstraints.BOTH;
         gbc.weighty = 1.0;
-        txtObservaciones = new JTextArea(3, 20);
+        txtObservaciones = new JTextArea(2, 20);
         txtObservaciones.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         txtObservaciones.setLineWrap(true);
         txtObservaciones.setWrapStyleWord(true);
@@ -234,7 +236,7 @@ public class BodegaPedirProductos extends JInternalFrame {
         txtObservaciones.setCaretColor(TEXT_WHITE);
         txtObservaciones.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(BORDER_COLOR, 1),
-                BorderFactory.createEmptyBorder(8, 12, 8, 12)
+                BorderFactory.createEmptyBorder(6, 10, 6, 10)
         ));
         JScrollPane scrollObservaciones = new JScrollPane(txtObservaciones);
         scrollObservaciones.getViewport().setBackground(new Color(50, 65, 95));
@@ -244,15 +246,17 @@ public class BodegaPedirProductos extends JInternalFrame {
         gbc.gridx = 0; gbc.gridy = 5; gbc.gridwidth = 4;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.weighty = 0.0;
-        gbc.insets = new Insets(20, 8, 8, 8);
+        gbc.insets = new Insets(15, 6, 6, 6);
 
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 0));
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 12, 0));
         buttonPanel.setBackground(CARD_BACKGROUND);
 
-        btnSolicitar = new ModernButton("📞 Enviar Solicitud", SUCCESS_COLOR);
+        btnSolicitar = new ModernButton("📞 Enviar", SUCCESS_COLOR);
+        btnSolicitar.setPreferredSize(new Dimension(120, 32));
         btnSolicitar.addActionListener(e -> enviarSolicitud());
 
-        btnLimpiar = new ModernButton("🧹 Limpiar Formulario", new Color(149, 165, 166));
+        btnLimpiar = new ModernButton("🧹 Limpiar", new Color(149, 165, 166));
+        btnLimpiar.setPreferredSize(new Dimension(100, 32));
         btnLimpiar.addActionListener(e -> limpiarFormulario());
 
         buttonPanel.add(btnSolicitar);
@@ -266,29 +270,29 @@ public class BodegaPedirProductos extends JInternalFrame {
     }
 
     private JPanel createInfoProductoPanel() {
-        JPanel infoPanel = new JPanel(new GridLayout(2, 2, 10, 5));
+        JPanel infoPanel = new JPanel(new GridLayout(2, 2, 8, 4));
         infoPanel.setBackground(new Color(35, 65, 100));
         infoPanel.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(ACCENT_COLOR, 2),
-                BorderFactory.createEmptyBorder(10, 15, 10, 15)
+                BorderFactory.createEmptyBorder(8, 12, 8, 12)
         ));
 
         // Producto seleccionado
-        JLabel lblProductoTitulo = new JLabel("Producto Seleccionado:");
-        lblProductoTitulo.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        JLabel lblProductoTitulo = new JLabel("Producto:");
+        lblProductoTitulo.setFont(new Font("Segoe UI", Font.BOLD, 11));
         lblProductoTitulo.setForeground(TEXT_WHITE);
 
         lblProductoSeleccionado = new JLabel("Ninguno");
-        lblProductoSeleccionado.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        lblProductoSeleccionado.setFont(new Font("Segoe UI", Font.BOLD, 11));
         lblProductoSeleccionado.setForeground(ACCENT_COLOR);
 
         // Stock actual
-        JLabel lblStockTitulo = new JLabel("Stock Actual en Bodega:");
-        lblStockTitulo.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        JLabel lblStockTitulo = new JLabel("Stock Actual:");
+        lblStockTitulo.setFont(new Font("Segoe UI", Font.BOLD, 11));
         lblStockTitulo.setForeground(TEXT_WHITE);
 
         lblStockActual = new JLabel("0 unidades");
-        lblStockActual.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        lblStockActual.setFont(new Font("Segoe UI", Font.BOLD, 11));
         lblStockActual.setForeground(WARNING_COLOR);
 
         infoPanel.add(lblProductoTitulo);
@@ -305,12 +309,12 @@ public class BodegaPedirProductos extends JInternalFrame {
         tablePanel.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createTitledBorder(
                         BorderFactory.createLineBorder(SECONDARY_COLOR, 2),
-                        "Productos que Necesitan Reabastecimiento",
+                        "Productos para Reabastecer",
                         0, 0,
-                        new Font("Segoe UI", Font.BOLD, 14),
+                        new Font("Segoe UI", Font.BOLD, 13),
                         TEXT_WHITE
                 ),
-                BorderFactory.createEmptyBorder(20, 20, 20, 20)
+                BorderFactory.createEmptyBorder(12, 12, 12, 12)
         ));
 
         // Modelo de tabla
@@ -328,9 +332,9 @@ public class BodegaPedirProductos extends JInternalFrame {
             @Override
             public Class<?> getColumnClass(int columnIndex) {
                 return switch (columnIndex) {
-                    case 0 -> Integer.class; // ID
-                    case 3, 4, 5 -> Double.class; // Stocks
-                    case 6 -> Double.class; // Costo
+                    case 0 -> Integer.class;
+                    case 3, 4, 5 -> Double.class;
+                    case 6 -> Double.class;
                     default -> String.class;
                 };
             }
@@ -338,9 +342,34 @@ public class BodegaPedirProductos extends JInternalFrame {
 
         productosTable = new JTable(tableModel);
 
-        // Configurar tabla
-        productosTable.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        productosTable.setRowHeight(35);
+        // Configurar tabla más compacta
+        setupTable();
+
+        JScrollPane scrollPane = new JScrollPane(productosTable);
+        scrollPane.setBorder(BorderFactory.createLineBorder(BORDER_COLOR, 1));
+        scrollPane.getViewport().setBackground(new Color(50, 65, 95));
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+
+        // Panel de información más compacto
+        JPanel infoPanel = new JPanel(new BorderLayout());
+        infoPanel.setBackground(CARD_BACKGROUND);
+        infoPanel.setBorder(BorderFactory.createEmptyBorder(6, 0, 0, 0));
+
+        JLabel infoLabel = new JLabel("💡 Haga clic en un producto para cargarlo en el formulario");
+        infoLabel.setFont(new Font("Segoe UI", Font.PLAIN, 10));
+        infoLabel.setForeground(new Color(180, 200, 255));
+
+        infoPanel.add(infoLabel, BorderLayout.CENTER);
+
+        tablePanel.add(scrollPane, BorderLayout.CENTER);
+        tablePanel.add(infoPanel, BorderLayout.SOUTH);
+
+        return tablePanel;
+    }
+
+    private void setupTable() {
+        productosTable.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        productosTable.setRowHeight(30);
         productosTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         productosTable.setIntercellSpacing(new Dimension(0, 0));
         productosTable.setShowGrid(false);
@@ -350,26 +379,26 @@ public class BodegaPedirProductos extends JInternalFrame {
         productosTable.setSelectionBackground(ACCENT_COLOR);
         productosTable.setSelectionForeground(TEXT_WHITE);
 
-        // Header personalizado
+        // Header personalizado más compacto
         JTableHeader header = productosTable.getTableHeader();
-        header.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        header.setFont(new Font("Segoe UI", Font.BOLD, 12));
         header.setBackground(PRIMARY_COLOR);
         header.setForeground(TEXT_WHITE);
-        header.setPreferredSize(new Dimension(header.getWidth(), 40));
+        header.setPreferredSize(new Dimension(header.getWidth(), 35));
 
-        // Anchos de columnas
-        productosTable.getColumnModel().getColumn(0).setPreferredWidth(60);  // ID
-        productosTable.getColumnModel().getColumn(1).setPreferredWidth(150); // Producto
-        productosTable.getColumnModel().getColumn(2).setPreferredWidth(120); // Proveedor
-        productosTable.getColumnModel().getColumn(3).setPreferredWidth(100); // Stock Actual
-        productosTable.getColumnModel().getColumn(4).setPreferredWidth(100); // Stock Mínimo
-        productosTable.getColumnModel().getColumn(5).setPreferredWidth(80);  // Déficit
-        productosTable.getColumnModel().getColumn(6).setPreferredWidth(100); // Costo
-        productosTable.getColumnModel().getColumn(7).setPreferredWidth(100); // Prioridad
+        // Anchos de columnas optimizados
+        productosTable.getColumnModel().getColumn(0).setPreferredWidth(50);
+        productosTable.getColumnModel().getColumn(1).setPreferredWidth(140);
+        productosTable.getColumnModel().getColumn(2).setPreferredWidth(110);
+        productosTable.getColumnModel().getColumn(3).setPreferredWidth(90);
+        productosTable.getColumnModel().getColumn(4).setPreferredWidth(90);
+        productosTable.getColumnModel().getColumn(5).setPreferredWidth(70);
+        productosTable.getColumnModel().getColumn(6).setPreferredWidth(90);
+        productosTable.getColumnModel().getColumn(7).setPreferredWidth(80);
 
         // Renderers personalizados
-        productosTable.getColumnModel().getColumn(5).setCellRenderer((TableCellRenderer) new DeficitRenderer());
-        productosTable.getColumnModel().getColumn(7).setCellRenderer((TableCellRenderer) new PrioridadRenderer());
+        productosTable.getColumnModel().getColumn(5).setCellRenderer(new DeficitRenderer());
+        productosTable.getColumnModel().getColumn(7).setCellRenderer(new PrioridadRenderer());
 
         // Listener para selección
         productosTable.getSelectionModel().addListSelectionListener(e -> {
@@ -377,26 +406,6 @@ public class BodegaPedirProductos extends JInternalFrame {
                 cargarProductoDesdeTabla();
             }
         });
-
-        JScrollPane scrollPane = new JScrollPane(productosTable);
-        scrollPane.setBorder(BorderFactory.createLineBorder(BORDER_COLOR, 1));
-        scrollPane.getViewport().setBackground(new Color(50, 65, 95));
-
-        // Panel de información
-        JPanel infoPanel = new JPanel(new BorderLayout());
-        infoPanel.setBackground(CARD_BACKGROUND);
-        infoPanel.setBorder(BorderFactory.createEmptyBorder(10, 0, 0, 0));
-
-        JLabel infoLabel = new JLabel("💡 Haga clic en un producto de la tabla para cargarlo automáticamente en el formulario");
-        infoLabel.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        infoLabel.setForeground(new Color(180, 200, 255));
-
-        infoPanel.add(infoLabel, BorderLayout.CENTER);
-
-        tablePanel.add(scrollPane, BorderLayout.CENTER);
-        tablePanel.add(infoPanel, BorderLayout.SOUTH);
-
-        return tablePanel;
     }
 
     private void loadProductosParaReabastecer() {
@@ -422,7 +431,7 @@ public class BodegaPedirProductos extends JInternalFrame {
                                 producto.getProveedorNombre(),
                                 producto.getStockBodega(),
                                 producto.getCantidadMinimaBodega(),
-                                Math.max(0, deficit), // No mostrar números negativos
+                                Math.max(0, deficit),
                                 producto.getCosto(),
                                 prioridad
                         };
@@ -652,7 +661,7 @@ public class BodegaPedirProductos extends JInternalFrame {
                         } catch (Exception e) {
                             showError("Error: " + e.getMessage());
                         } finally {
-                            btnSolicitar.setText("📞 Enviar Solicitud");
+                            btnSolicitar.setText("📞 Enviar");
                             btnSolicitar.setEnabled(true);
                         }
                     }
@@ -696,7 +705,7 @@ public class BodegaPedirProductos extends JInternalFrame {
         }
     }
 
-    // Métodos de utilidad para mensajes (actualizados)
+    // Métodos de utilidad para mensajes
     private void showError(String message) {
         JOptionPane.showMessageDialog(this,
                 "<html><div style='text-align: center; padding: 10px;'>" +
@@ -727,10 +736,10 @@ public class BodegaPedirProductos extends JInternalFrame {
 
         public ModernTextField(String placeholder) {
             this.placeholder = placeholder;
-            setFont(new Font("Segoe UI", Font.PLAIN, 14));
+            setFont(new Font("Segoe UI", Font.PLAIN, 13));
             setBorder(BorderFactory.createCompoundBorder(
                     BorderFactory.createLineBorder(BORDER_COLOR, 1),
-                    BorderFactory.createEmptyBorder(10, 15, 10, 15)
+                    BorderFactory.createEmptyBorder(8, 12, 8, 12)
             ));
             setBackground(new Color(50, 65, 95));
             setForeground(TEXT_WHITE);
@@ -762,7 +771,7 @@ public class BodegaPedirProductos extends JInternalFrame {
 
     class ModernComboBox extends JComboBox<String> {
         public ModernComboBox() {
-            setFont(new Font("Segoe UI", Font.PLAIN, 14));
+            setFont(new Font("Segoe UI", Font.PLAIN, 13));
             setBackground(new Color(50, 65, 95));
             setForeground(TEXT_WHITE);
             setBorder(BorderFactory.createCompoundBorder(
@@ -778,8 +787,8 @@ public class BodegaPedirProductos extends JInternalFrame {
         public Component getListCellRendererComponent(JList<?> list, Object value, int index,
                                                       boolean isSelected, boolean cellHasFocus) {
             JLabel label = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
-            label.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-            label.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
+            label.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+            label.setBorder(BorderFactory.createEmptyBorder(4, 8, 4, 8));
 
             if (isSelected) {
                 label.setBackground(ACCENT_COLOR);
@@ -800,13 +809,13 @@ public class BodegaPedirProductos extends JInternalFrame {
             super(text);
             this.originalColor = color;
 
-            setFont(new Font("Segoe UI", Font.BOLD, 12));
+            setFont(new Font("Segoe UI", Font.BOLD, 11));
             setBackground(color);
             setForeground(TEXT_WHITE);
             setFocusPainted(false);
             setBorderPainted(false);
             setCursor(new Cursor(Cursor.HAND_CURSOR));
-            setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
+            setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
 
             addMouseListener(new MouseAdapter() {
                 @Override
@@ -833,7 +842,7 @@ public class BodegaPedirProductos extends JInternalFrame {
                                                        int row, int column) {
             JLabel label = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
             label.setHorizontalAlignment(SwingConstants.RIGHT);
-            label.setFont(new Font("Segoe UI", Font.BOLD, 11));
+            label.setFont(new Font("Segoe UI", Font.BOLD, 10));
             label.setBackground(new Color(50, 65, 95));
             label.setForeground(TEXT_WHITE);
 
@@ -863,9 +872,9 @@ public class BodegaPedirProductos extends JInternalFrame {
                                                        int row, int column) {
             JLabel label = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
             label.setHorizontalAlignment(SwingConstants.CENTER);
-            label.setFont(new Font("Segoe UI", Font.BOLD, 11));
+            label.setFont(new Font("Segoe UI", Font.BOLD, 10));
             label.setOpaque(true);
-            label.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
+            label.setBorder(BorderFactory.createEmptyBorder(4, 8, 4, 8));
 
             String prioridad = (String) value;
             if (prioridad.contains("CRÍTICA")) {
@@ -884,7 +893,7 @@ public class BodegaPedirProductos extends JInternalFrame {
 
             label.setBorder(BorderFactory.createCompoundBorder(
                     BorderFactory.createLineBorder(label.getForeground(), 1),
-                    BorderFactory.createEmptyBorder(4, 9, 4, 9)
+                    BorderFactory.createEmptyBorder(3, 7, 3, 7)
             ));
 
             if (isSelected) {

@@ -41,33 +41,115 @@ public class VentaDAO {
                 productos.add(producto);
             }
         } catch (SQLException e) {
+            System.err.println("Error al obtener productos para venta: " + e.getMessage());
             e.printStackTrace();
         }
         return productos;
     }
 
     /**
-     * Crear una nueva venta - VERSIÓN CORREGIDA
+     * Crear una nueva venta - CON usuario_id
      */
     public int crearVenta(Venta venta) {
-        // CONSULTA CORREGIDA - sin usuario_id
-        String sql = "INSERT INTO Facturas (total, cliente) VALUES (?, ?)";
+        String sql = "INSERT INTO Facturas (total, cliente, usuario_id) VALUES (?, ?, ?)";
 
         try (PreparedStatement stmt = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             stmt.setBigDecimal(1, venta.getTotal());
             stmt.setString(2, venta.getCliente());
+            stmt.setInt(3, venta.getUsuarioId());
 
             int affectedRows = stmt.executeUpdate();
             if (affectedRows > 0) {
                 ResultSet generatedKeys = stmt.getGeneratedKeys();
                 if (generatedKeys.next()) {
-                    return generatedKeys.getInt(1); // Retorna el ID de la venta creada
+                    return generatedKeys.getInt(1);
                 }
             }
             return -1;
         } catch (SQLException e) {
+            System.err.println("Error al crear venta: " + e.getMessage());
             e.printStackTrace();
             return -1;
+        }
+    }
+
+    /**
+     * Procesar venta completa con transacción
+     */
+    public boolean procesarVentaCompleta(Venta venta, List<DetalleVenta> detalles) {
+        Connection conn = null;
+        try {
+            conn = DatabaseConnection.getConnection();
+            conn.setAutoCommit(false);
+
+            // 1. Crear factura
+            String sqlFactura = "INSERT INTO Facturas (total, cliente, usuario_id) VALUES (?, ?, ?)";
+            int facturaId;
+
+            try (PreparedStatement stmt = conn.prepareStatement(sqlFactura, Statement.RETURN_GENERATED_KEYS)) {
+                stmt.setBigDecimal(1, venta.getTotal());
+                stmt.setString(2, venta.getCliente());
+                stmt.setInt(3, venta.getUsuarioId());
+                stmt.executeUpdate();
+
+                ResultSet generatedKeys = stmt.getGeneratedKeys();
+                if (generatedKeys.next()) {
+                    facturaId = generatedKeys.getInt(1);
+                } else {
+                    throw new SQLException("No se pudo obtener el ID de la factura");
+                }
+            }
+
+            // 2. Insertar detalles y actualizar stock
+            String sqlDetalle = "INSERT INTO DetallesDeFacturas (factura_id, producto_id, cantidad, precio_unitario, sub_total) VALUES (?, ?, ?, ?, ?)";
+            String sqlStock = "UPDATE InventarioVendedor SET cantidad_disponible = cantidad_disponible - ? WHERE producto_id = ? AND activo = true AND cantidad_disponible >= ?";
+
+            for (DetalleVenta detalle : detalles) {
+                // Insertar detalle
+                try (PreparedStatement stmt = conn.prepareStatement(sqlDetalle)) {
+                    stmt.setInt(1, facturaId);
+                    stmt.setInt(2, detalle.getProductoId());
+                    stmt.setDouble(3, detalle.getCantidad());
+                    stmt.setBigDecimal(4, detalle.getPrecioUnitario());
+                    stmt.setBigDecimal(5, detalle.getSubTotal());
+                    stmt.executeUpdate();
+                }
+
+                // Actualizar stock con validación
+                try (PreparedStatement stmt = conn.prepareStatement(sqlStock)) {
+                    stmt.setDouble(1, detalle.getCantidad());
+                    stmt.setInt(2, detalle.getProductoId());
+                    stmt.setDouble(3, detalle.getCantidad());
+
+                    int affectedRows = stmt.executeUpdate();
+                    if (affectedRows == 0) {
+                        throw new SQLException("Stock insuficiente para producto ID: " + detalle.getProductoId());
+                    }
+                }
+            }
+
+            conn.commit();
+            return true;
+
+        } catch (SQLException e) {
+            if (conn != null) {
+                try {
+                    conn.rollback();
+                } catch (SQLException ex) {
+                    System.err.println("Error al hacer rollback: " + ex.getMessage());
+                }
+            }
+            System.err.println("Error en transacción de venta: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.setAutoCommit(true);
+                } catch (SQLException e) {
+                    System.err.println("Error al restaurar auto-commit: " + e.getMessage());
+                }
+            }
         }
     }
 
@@ -85,15 +167,9 @@ public class VentaDAO {
             stmt.setBigDecimal(4, detalle.getPrecioUnitario());
             stmt.setBigDecimal(5, detalle.getSubTotal());
 
-            boolean success = stmt.executeUpdate() > 0;
-
-            if (success) {
-                // Actualizar stock del vendedor
-                actualizarStockVendedor(detalle.getProductoId(), detalle.getCantidad());
-            }
-
-            return success;
+            return stmt.executeUpdate() > 0;
         } catch (SQLException e) {
+            System.err.println("Error al agregar detalle de venta: " + e.getMessage());
             e.printStackTrace();
             return false;
         }
@@ -102,17 +178,21 @@ public class VentaDAO {
     /**
      * Actualizar stock del vendedor después de una venta
      */
-    private boolean actualizarStockVendedor(int productoId, double cantidadVendida) {
+    public boolean actualizarStockVendedor(int productoId, double cantidadVendida) {
         String sql = "UPDATE InventarioVendedor SET " +
                 "cantidad_disponible = cantidad_disponible - ?, " +
                 "fecha_actualizacion = CURRENT_TIMESTAMP " +
-                "WHERE producto_id = ? AND activo = true";
+                "WHERE producto_id = ? AND activo = true AND cantidad_disponible >= ?";
 
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setDouble(1, cantidadVendida);
             stmt.setInt(2, productoId);
-            return stmt.executeUpdate() > 0;
+            stmt.setDouble(3, cantidadVendida);
+
+            int affectedRows = stmt.executeUpdate();
+            return affectedRows > 0;
         } catch (SQLException e) {
+            System.err.println("Error al actualizar stock de vendedor: " + e.getMessage());
             e.printStackTrace();
             return false;
         }
@@ -133,35 +213,39 @@ public class VentaDAO {
 
             return stmt.executeUpdate() > 0;
         } catch (SQLException e) {
+            System.err.println("Error al crear petición de stock: " + e.getMessage());
             e.printStackTrace();
             return false;
         }
     }
 
     /**
-     * Obtener historial de ventas del vendedor - VERSIÓN CORREGIDA
+     * Obtener historial de ventas del vendedor
      */
     public List<Venta> getVentasPorVendedor(int usuarioId) {
         List<Venta> ventas = new ArrayList<>();
-        // CONSULTA CORREGIDA - eliminamos el JOIN con Usuarios
-        String sql = "SELECT f.factura_id, f.fecha_factura, f.total, f.cliente " +
+        String sql = "SELECT f.factura_id, f.fecha_factura, f.total, f.cliente, f.usuario_id " +
                 "FROM Facturas f " +
-                "WHERE f.activo = true " +
+                "WHERE f.activo = true AND f.usuario_id = ? " +
                 "ORDER BY f.fecha_factura DESC " +
                 "LIMIT 50";
 
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
-            ResultSet rs = stmt.executeQuery();
+            stmt.setInt(1, usuarioId);
 
-            while (rs.next()) {
-                Venta venta = new Venta();
-                venta.setVentaId(rs.getInt("factura_id"));
-                venta.setFechaVenta(rs.getTimestamp("fecha_factura"));
-                venta.setTotal(rs.getBigDecimal("total"));
-                venta.setCliente(rs.getString("cliente"));
-                ventas.add(venta);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    Venta venta = new Venta();
+                    venta.setVentaId(rs.getInt("factura_id"));
+                    venta.setFechaVenta(rs.getTimestamp("fecha_factura"));
+                    venta.setTotal(rs.getBigDecimal("total"));
+                    venta.setCliente(rs.getString("cliente"));
+                    venta.setUsuarioId(rs.getInt("usuario_id"));
+                    ventas.add(venta);
+                }
             }
         } catch (SQLException e) {
+            System.err.println("Error al obtener ventas por vendedor: " + e.getMessage());
             e.printStackTrace();
         }
         return ventas;
@@ -180,20 +264,22 @@ public class VentaDAO {
 
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setInt(1, ventaId);
-            ResultSet rs = stmt.executeQuery();
 
-            while (rs.next()) {
-                DetalleVenta detalle = new DetalleVenta();
-                detalle.setDetalleVentaId(rs.getInt("detalle_factura_id"));
-                detalle.setProductoId(rs.getInt("producto_id"));
-                detalle.setCantidad(rs.getDouble("cantidad"));
-                detalle.setPrecioUnitario(rs.getBigDecimal("precio_unitario"));
-                detalle.setSubTotal(rs.getBigDecimal("sub_total"));
-                detalle.setProductoNombre(rs.getString("producto_nombre"));
-                detalle.setUnidadMedida(rs.getString("unidad_medida"));
-                detalles.add(detalle);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    DetalleVenta detalle = new DetalleVenta();
+                    detalle.setDetalleVentaId(rs.getInt("detalle_factura_id"));
+                    detalle.setProductoId(rs.getInt("producto_id"));
+                    detalle.setCantidad(rs.getDouble("cantidad"));
+                    detalle.setPrecioUnitario(rs.getBigDecimal("precio_unitario"));
+                    detalle.setSubTotal(rs.getBigDecimal("sub_total"));
+                    detalle.setProductoNombre(rs.getString("producto_nombre"));
+                    detalle.setUnidadMedida(rs.getString("unidad_medida"));
+                    detalles.add(detalle);
+                }
             }
         } catch (SQLException e) {
+            System.err.println("Error al obtener detalles de venta: " + e.getMessage());
             e.printStackTrace();
         }
         return detalles;
@@ -227,6 +313,7 @@ public class VentaDAO {
                 productos.add(producto);
             }
         } catch (SQLException e) {
+            System.err.println("Error al obtener productos con stock bajo: " + e.getMessage());
             e.printStackTrace();
         }
         return productos;
@@ -248,18 +335,20 @@ public class VentaDAO {
 
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setString(1, "%" + searchTerm + "%");
-            ResultSet rs = stmt.executeQuery();
 
-            while (rs.next()) {
-                Producto producto = new Producto();
-                producto.setProductoId(rs.getInt("producto_id"));
-                producto.setNombre(rs.getString("nombre"));
-                producto.setPrecio(rs.getBigDecimal("precio"));
-                producto.setUnidadMedida(rs.getString("unidad_medida"));
-                producto.setStockVendedor(rs.getDouble("stock_vendedor"));
-                productos.add(producto);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    Producto producto = new Producto();
+                    producto.setProductoId(rs.getInt("producto_id"));
+                    producto.setNombre(rs.getString("nombre"));
+                    producto.setPrecio(rs.getBigDecimal("precio"));
+                    producto.setUnidadMedida(rs.getString("unidad_medida"));
+                    producto.setStockVendedor(rs.getDouble("stock_vendedor"));
+                    productos.add(producto);
+                }
             }
         } catch (SQLException e) {
+            System.err.println("Error al buscar productos: " + e.getMessage());
             e.printStackTrace();
         }
         return productos;

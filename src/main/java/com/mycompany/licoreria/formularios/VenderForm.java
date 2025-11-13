@@ -373,8 +373,19 @@ public class VenderForm extends JInternalFrame {
         try {
             int productoId = (int) modelProductos.getValueAt(selectedRow, 0);
             String productoNombre = (String) modelProductos.getValueAt(selectedRow, 1);
-            BigDecimal precio = (BigDecimal) modelProductos.getValueAt(selectedRow, 2);
-            double stock = (double) modelProductos.getValueAt(selectedRow, 3);
+
+            // CORREGIR: El precio viene como Object, necesitamos convertirlo correctamente
+            Object precioObj = modelProductos.getValueAt(selectedRow, 2);
+            BigDecimal precio;
+            if (precioObj instanceof BigDecimal) {
+                precio = (BigDecimal) precioObj;
+            } else if (precioObj instanceof Double) {
+                precio = BigDecimal.valueOf((Double) precioObj);
+            } else {
+                precio = new BigDecimal(precioObj.toString());
+            }
+
+            double stock = ((Number) modelProductos.getValueAt(selectedRow, 3)).doubleValue();
             String unidad = (String) modelProductos.getValueAt(selectedRow, 4);
 
             double cantidad;
@@ -426,9 +437,9 @@ public class VenderForm extends JInternalFrame {
 
         } catch (Exception e) {
             showError("Error al agregar producto: " + e.getMessage());
+            e.printStackTrace(); // Para debug
         }
     }
-
     private void quitarDelCarrito() {
         int selectedRow = tableCarrito.getSelectedRow();
         if (selectedRow == -1) {

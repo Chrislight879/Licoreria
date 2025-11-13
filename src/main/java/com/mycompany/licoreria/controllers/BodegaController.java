@@ -70,11 +70,23 @@ public class BodegaController {
     }
 
     /**
-     * Crear solicitud de compra a proveedor
+     * Crear solicitud de compra a proveedor - MODIFICADO para crear petición de stock
      */
     public boolean crearSolicitudCompra(int productoId, double cantidadSolicitada, String observaciones) {
         try {
-            return bodegaService.crearSolicitudCompra(productoId, cantidadSolicitada, observaciones);
+            // Primero crear la solicitud de compra normal
+            boolean solicitudCreada = bodegaService.crearSolicitudCompra(productoId, cantidadSolicitada, observaciones);
+
+            if (solicitudCreada) {
+                // Ahora crear también una petición de stock para que el admin la vea y apruebe
+                int usuarioBodegaId = 3; // Asumiendo que el usuario bodega tiene ID 3
+
+                // Crear petición de stock para aprobación del admin
+                return bodegaService.crearPeticionStockBodega(productoId, usuarioBodegaId, cantidadSolicitada,
+                        "SOLICITUD BODEGA: " + observaciones);
+            }
+
+            return false;
         } catch (IllegalArgumentException e) {
             throw e; // Re-lanzar validaciones específicas
         } catch (Exception e) {
@@ -139,6 +151,32 @@ public class BodegaController {
                     .toList();
         } catch (Exception e) {
             throw new RuntimeException("Error al obtener alertas de stock crítico: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * NUEVO MÉTODO: Obtener peticiones de bodega pendientes
+     */
+    public List<PeticionStock> getPeticionesBodegaPendientes() {
+        try {
+            // Filtrar peticiones que son de bodega
+            List<PeticionStock> todasPeticiones = bodegaService.getPeticionesPendientes();
+            return todasPeticiones.stream()
+                    .filter(p -> p.getObservaciones() != null && p.getObservaciones().contains("SOLICITUD BODEGA"))
+                    .toList();
+        } catch (Exception e) {
+            throw new RuntimeException("Error al obtener peticiones de bodega: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * NUEVO MÉTODO: Aprobar petición de bodega
+     */
+    public boolean aprobarPeticionBodega(int peticionId, int usuarioAprobadorId) {
+        try {
+            return bodegaService.aprobarPeticionBodega(peticionId, usuarioAprobadorId);
+        } catch (Exception e) {
+            throw new RuntimeException("Error al aprobar petición de bodega: " + e.getMessage(), e);
         }
     }
 }

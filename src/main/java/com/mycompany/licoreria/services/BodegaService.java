@@ -86,18 +86,18 @@ public class BodegaService {
     }
 
     /**
-     * Despachar petición a vendedor
+     * Despachar petición a vendedor - USANDO MÉTODO TRANSACCIONAL
      */
     public boolean despacharPeticion(int peticionId) {
-        // Verificar stock disponible antes de despachar
-        List<PeticionStock> peticionesAprobadas = getPeticionesAprobadas();
-        PeticionStock peticion = peticionesAprobadas.stream()
-                .filter(p -> p.getPeticionId() == peticionId)
-                .findFirst()
-                .orElse(null);
+        // Verificar que la petición existe y está aprobada
+        PeticionStock peticion = peticionStockDAO.getPeticionById(peticionId);
 
         if (peticion == null) {
-            throw new IllegalArgumentException("La petición no existe o no está aprobada");
+            throw new IllegalArgumentException("La petición no existe");
+        }
+
+        if (!"aprobada".equals(peticion.getEstado())) {
+            throw new IllegalArgumentException("La petición no está aprobada. Estado actual: " + peticion.getEstado());
         }
 
         // Verificar stock en bodega
@@ -106,18 +106,8 @@ public class BodegaService {
                     peticion.getStockBodega() + ", Solicitado: " + peticion.getCantidadSolicitada());
         }
 
-        // Actualizar stocks
-        boolean stockBodegaActualizado = peticionStockDAO.actualizarStockBodega(
-                peticion.getProductoId(), peticion.getCantidadSolicitada());
-
-        boolean stockVendedorActualizado = peticionStockDAO.actualizarStockVendedor(
-                peticion.getProductoId(), peticion.getCantidadSolicitada());
-
-        if (stockBodegaActualizado && stockVendedorActualizado) {
-            return peticionStockDAO.despacharPeticion(peticionId);
-        } else {
-            throw new RuntimeException("Error al actualizar los stocks durante el despacho");
-        }
+        // Usar el método transaccional del DAO
+        return peticionStockDAO.despacharPeticionCompleta(peticionId);
     }
 
     /**
@@ -125,6 +115,10 @@ public class BodegaService {
      */
     public String getEstadisticasBodega() {
         List<Producto> productos = getAllProductos();
+        if (productos.isEmpty()) {
+            return "No hay productos en bodega";
+        }
+
         long totalProductos = productos.size();
         long stockBajo = productos.stream()
                 .filter(p -> p.getStockBodega() <= p.getCantidadMinimaBodega())
@@ -134,10 +128,73 @@ public class BodegaService {
                 .count();
 
         double valorTotalInventario = productos.stream()
-                .mapToDouble(p -> p.getStockBodega() * p.getCosto().doubleValue())
+                .mapToDouble(p -> p.getStockBodega() * (p.getCosto() != null ? p.getCosto().doubleValue() : 0))
                 .sum();
 
         return String.format("Productos: %d | Stock Bajo: %d | Sin Stock: %d | Valor Inventario: $%,.2f",
                 totalProductos, stockBajo, sinStock, valorTotalInventario);
+    }
+
+    /**
+     * Obtener petición por ID
+     */
+    public PeticionStock getPeticionById(int peticionId) {
+        return peticionStockDAO.getPeticionById(peticionId);
+    }
+
+    /**
+     * NUEVO MÉTODO: Crear petición de stock desde bodega
+     */
+    public boolean crearPeticionStockBodega(int productoId, int usuarioId, double cantidadSolicitada, String observaciones) {
+        try {
+            // Crear petición de stock especial para bodega
+            String observacionesCompletas = "🚚 " + observaciones + " [SOLICITUD BODEGA]";
+
+            // Usar el DAO de peticiones de stock para crear la petición
+            return peticionStockDAO.crearPeticionBodega(productoId, usuarioId, cantidadSolicitada, observacionesCompletas);
+        } catch (Exception e) {
+            System.err.println("Error al crear petición de stock desde bodega: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * NUEVO MÉTODO: Aprobar petición de bodega y actualizar stock
+     */
+    public boolean aprobarPeticionBodega(int peticionId, int usuarioAprobadorId) {
+        try {
+            // Obtener la petición
+            PeticionStock peticion = peticionStockDAO.getPeticionById(peticionId);
+
+            if (peticion == null) {
+                throw new IllegalArgumentException("La petición no existe");
+            }
+
+            if (!"pendiente".equals(peticion.getEstado())) {
+                throw new IllegalArgumentException("La petición no está pendiente");
+            }
+
+            // Aprobar la petición
+            boolean aprobada = peticionStockDAO.aprobarPeticion(peticionId, usuarioAprobadorId, "Aprobada solicitud de bodega");
+
+            if (aprobada) {
+                // Actualizar el stock en bodega (SUMAR la cantidad)
+                boolean stockActualizado = productoDAO.actualizarStockBodegaSumar(
+                        peticion.getProductoId(),
+                        peticion.getCantidadSolicitada() // Se SUMA al stock de bodega
+                );
+
+                if (stockActualizado) {
+                    // Marcar como despachada
+                    return peticionStockDAO.despacharPeticion(peticionId);
+                } else {
+                    throw new RuntimeException("Error al actualizar stock en bodega");
+                }
+            }
+
+            return false;
+        } catch (Exception e) {
+            throw new RuntimeException("Error al aprobar petición de bodega: " + e.getMessage(), e);
+        }
     }
 }

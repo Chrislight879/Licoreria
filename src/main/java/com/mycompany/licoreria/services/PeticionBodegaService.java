@@ -64,7 +64,7 @@ public class PeticionBodegaService {
     }
 
     /**
-     * Aprobar petición
+     * Aprobar petición - CORREGIDO
      */
     public boolean aprobarPeticion(int peticionId, int usuarioAprobadorId, String observaciones) {
         if (observaciones == null || observaciones.trim().isEmpty()) {
@@ -92,7 +92,7 @@ public class PeticionBodegaService {
     }
 
     /**
-     * Rechazar petición
+     * Rechazar petición - CORREGIDO
      */
     public boolean rechazarPeticion(int peticionId, int usuarioAprobadorId, String observaciones) {
         if (observaciones == null || observaciones.trim().isEmpty()) {
@@ -112,7 +112,7 @@ public class PeticionBodegaService {
     }
 
     /**
-     * Despachar petición
+     * Despachar petición - CORREGIDO (ahora transfiere stock)
      */
     public boolean despacharPeticion(int peticionId) {
         // Verificar que la petición existe y está aprobada
@@ -126,7 +126,8 @@ public class PeticionBodegaService {
             throw new IllegalArgumentException("La petición no existe o no está aprobada");
         }
 
-        return peticionBodegaDAO.despacharPeticion(peticionId);
+        // Usar el método transaccional que transfiere stock
+        return peticionBodegaDAO.despacharPeticionCompleta(peticionId);
     }
 
     /**

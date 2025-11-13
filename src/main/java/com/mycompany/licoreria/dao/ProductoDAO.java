@@ -114,7 +114,7 @@ public class ProductoDAO {
     }
 
     /**
-     * Actualizar stock en bodega
+     * Actualizar stock en bodega - MÉTODO ORIGINAL (reemplaza cantidad)
      */
     public boolean actualizarStockBodega(int productoId, double nuevaCantidad) {
         String sql = "UPDATE InventarioBodega SET " +
@@ -124,6 +124,25 @@ public class ProductoDAO {
 
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setDouble(1, nuevaCantidad);
+            stmt.setInt(2, productoId);
+            return stmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
+     * NUEVO MÉTODO: Actualizar stock en bodega SUMANDO cantidad
+     */
+    public boolean actualizarStockBodegaSumar(int productoId, double cantidadASumar) {
+        String sql = "UPDATE InventarioBodega SET " +
+                "cantidad_disponible = cantidad_disponible + ?, " +
+                "fecha_actualizacion = CURRENT_TIMESTAMP " +
+                "WHERE producto_id = ? AND activo = true";
+
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setDouble(1, cantidadASumar);
             stmt.setInt(2, productoId);
             return stmt.executeUpdate() > 0;
         } catch (SQLException e) {

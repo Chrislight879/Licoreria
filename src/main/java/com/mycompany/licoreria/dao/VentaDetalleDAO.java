@@ -17,7 +17,7 @@ public class VentaDetalleDAO {
     }
 
     /**
-     * Obtener productos disponibles para venta rápida
+     * Obtener productos disponibles para venta rápida - CORREGIDO
      */
     public List<Producto> getProductosParaVentaRapida() {
         List<Producto> productos = new ArrayList<>();
@@ -42,13 +42,14 @@ public class VentaDetalleDAO {
                 productos.add(producto);
             }
         } catch (SQLException e) {
+            System.err.println("Error en getProductosParaVentaRapida: " + e.getMessage());
             e.printStackTrace();
         }
         return productos;
     }
 
     /**
-     * Buscar productos para venta rápida
+     * Buscar productos para venta rápida - CORREGIDO
      */
     public List<Producto> buscarProductosVentaRapida(String searchTerm) {
         List<Producto> productos = new ArrayList<>();
@@ -78,9 +79,95 @@ public class VentaDetalleDAO {
                 productos.add(producto);
             }
         } catch (SQLException e) {
+            System.err.println("Error en buscarProductosVentaRapida: " + e.getMessage());
             e.printStackTrace();
         }
         return productos;
+    }
+
+    /**
+     * Procesar venta rápida - CORREGIDO (con usuario_id)
+     */
+    public boolean procesarVentaRapida(String cliente, int usuarioId, List<VentaDetalle> detalles) {
+        Connection conn = null;
+        try {
+            conn = DatabaseConnection.getConnection();
+            conn.setAutoCommit(false);
+
+            // Calcular total
+            BigDecimal total = detalles.stream()
+                    .map(VentaDetalle::getSubTotal)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            // Insertar factura - CORREGIDO (con usuario_id)
+            String sqlFactura = "INSERT INTO Facturas (cliente, total, usuario_id) VALUES (?, ?, ?)";
+            int facturaId;
+
+            try (PreparedStatement stmt = conn.prepareStatement(sqlFactura, Statement.RETURN_GENERATED_KEYS)) {
+                stmt.setString(1, cliente);
+                stmt.setBigDecimal(2, total);
+                stmt.setInt(3, usuarioId);
+                stmt.executeUpdate();
+
+                ResultSet generatedKeys = stmt.getGeneratedKeys();
+                if (generatedKeys.next()) {
+                    facturaId = generatedKeys.getInt(1);
+                } else {
+                    throw new SQLException("No se pudo obtener el ID de la factura");
+                }
+            }
+
+            // Insertar detalles y actualizar stock
+            String sqlDetalle = "INSERT INTO DetallesDeFacturas (factura_id, producto_id, cantidad, precio_unitario, sub_total) VALUES (?, ?, ?, ?, ?)";
+            String sqlStock = "UPDATE InventarioVendedor SET cantidad_disponible = cantidad_disponible - ? WHERE producto_id = ? AND activo = true AND cantidad_disponible >= ?";
+
+            for (VentaDetalle detalle : detalles) {
+                // Insertar detalle
+                try (PreparedStatement stmtDetalle = conn.prepareStatement(sqlDetalle)) {
+                    stmtDetalle.setInt(1, facturaId);
+                    stmtDetalle.setInt(2, detalle.getProductoId());
+                    stmtDetalle.setDouble(3, detalle.getCantidad());
+                    stmtDetalle.setBigDecimal(4, detalle.getPrecioUnitario());
+                    stmtDetalle.setBigDecimal(5, detalle.getSubTotal());
+                    stmtDetalle.executeUpdate();
+                }
+
+                // Actualizar stock con validación
+                try (PreparedStatement stmtStock = conn.prepareStatement(sqlStock)) {
+                    stmtStock.setDouble(1, detalle.getCantidad());
+                    stmtStock.setInt(2, detalle.getProductoId());
+                    stmtStock.setDouble(3, detalle.getCantidad());
+
+                    int affectedRows = stmtStock.executeUpdate();
+                    if (affectedRows == 0) {
+                        throw new SQLException("Stock insuficiente para producto ID: " + detalle.getProductoId());
+                    }
+                }
+            }
+
+            conn.commit();
+            return true;
+
+        } catch (SQLException e) {
+            if (conn != null) {
+                try {
+                    conn.rollback();
+                } catch (SQLException ex) {
+                    System.err.println("Error al hacer rollback: " + ex.getMessage());
+                }
+            }
+            System.err.println("Error en procesarVentaRapida: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.setAutoCommit(true);
+                } catch (SQLException e) {
+                    System.err.println("Error al restaurar auto-commit: " + e.getMessage());
+                }
+            }
+        }
     }
 
     /**
@@ -156,85 +243,7 @@ public class VentaDetalleDAO {
     }
 
     /**
-     * Procesar venta rápida
-     */
-    public boolean procesarVentaRapida(String cliente, int usuarioId, List<VentaDetalle> detalles) {
-        Connection conn = null;
-        try {
-            conn = DatabaseConnection.getConnection();
-            conn.setAutoCommit(false);
-
-            // Calcular total
-            BigDecimal total = detalles.stream()
-                    .map(VentaDetalle::getSubTotal)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-            // Insertar factura - VERSIÓN CORREGIDA (sin usuario_id)
-            String sqlFactura = "INSERT INTO Facturas (cliente, total) VALUES (?, ?)";
-            int facturaId;
-
-            try (PreparedStatement stmt = conn.prepareStatement(sqlFactura, Statement.RETURN_GENERATED_KEYS)) {
-                stmt.setString(1, cliente);
-                stmt.setBigDecimal(2, total);
-                stmt.executeUpdate();
-
-                ResultSet generatedKeys = stmt.getGeneratedKeys();
-                if (generatedKeys.next()) {
-                    facturaId = generatedKeys.getInt(1);
-                } else {
-                    throw new SQLException("No se pudo obtener el ID de la factura");
-                }
-            }
-
-            // Insertar detalles y actualizar stock
-            String sqlDetalle = "INSERT INTO DetallesDeFacturas (factura_id, producto_id, cantidad, precio_unitario, sub_total) VALUES (?, ?, ?, ?, ?)";
-            String sqlStock = "UPDATE InventarioVendedor SET cantidad_disponible = cantidad_disponible - ? WHERE producto_id = ?";
-
-            for (VentaDetalle detalle : detalles) {
-                // Insertar detalle
-                try (PreparedStatement stmtDetalle = conn.prepareStatement(sqlDetalle)) {
-                    stmtDetalle.setInt(1, facturaId);
-                    stmtDetalle.setInt(2, detalle.getProductoId());
-                    stmtDetalle.setDouble(3, detalle.getCantidad());
-                    stmtDetalle.setBigDecimal(4, detalle.getPrecioUnitario());
-                    stmtDetalle.setBigDecimal(5, detalle.getSubTotal());
-                    stmtDetalle.executeUpdate();
-                }
-
-                // Actualizar stock
-                try (PreparedStatement stmtStock = conn.prepareStatement(sqlStock)) {
-                    stmtStock.setDouble(1, detalle.getCantidad());
-                    stmtStock.setInt(2, detalle.getProductoId());
-                    stmtStock.executeUpdate();
-                }
-            }
-
-            conn.commit();
-            return true;
-
-        } catch (SQLException e) {
-            if (conn != null) {
-                try {
-                    conn.rollback();
-                } catch (SQLException ex) {
-                    ex.printStackTrace();
-                }
-            }
-            e.printStackTrace();
-            return false;
-        } finally {
-            if (conn != null) {
-                try {
-                    conn.setAutoCommit(true);
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-    }
-
-    /**
-     * Eliminar venta (anulación)
+     * Eliminar venta (anulación) - CORREGIDO
      */
     public boolean anularVenta(int facturaId) {
         Connection conn = null;
@@ -269,8 +278,8 @@ public class VentaDetalleDAO {
                 }
             }
 
-            // Anular factura y detalles
-            String sqlAnularFactura = "UPDATE Facturas SET activo = false WHERE factura_id = ?";
+            // Anular factura y detalles - CORREGIDO (usando estado en lugar de activo)
+            String sqlAnularFactura = "UPDATE Facturas SET estado = 'anulada' WHERE factura_id = ?";
             String sqlAnularDetalles = "UPDATE DetallesDeFacturas SET activo = false WHERE factura_id = ?";
 
             try (PreparedStatement stmt = conn.prepareStatement(sqlAnularDetalles)) {
@@ -316,7 +325,7 @@ public class VentaDetalleDAO {
                 "COALESCE(SUM(total), 0) as total_ingresos, " +
                 "COALESCE(AVG(total), 0) as promedio_venta " +
                 "FROM Facturas " +
-                "WHERE DATE(fecha_factura) = CURDATE() AND activo = true";
+                "WHERE DATE(fecha_factura) = CURDATE() AND estado = 'activa'";
 
         try (Statement stmt = connection.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {

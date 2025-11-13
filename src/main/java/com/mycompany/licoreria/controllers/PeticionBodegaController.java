@@ -79,7 +79,7 @@ public class PeticionBodegaController {
     }
 
     /**
-     * Aprobar petición
+     * Aprobar petición - CORREGIDO
      */
     public boolean aprobarPeticion(int peticionId, int usuarioAprobadorId, String observaciones) {
         try {
@@ -92,7 +92,7 @@ public class PeticionBodegaController {
     }
 
     /**
-     * Rechazar petición
+     * Rechazar petición - CORREGIDO
      */
     public boolean rechazarPeticion(int peticionId, int usuarioAprobadorId, String observaciones) {
         try {
@@ -105,7 +105,7 @@ public class PeticionBodegaController {
     }
 
     /**
-     * Despachar petición
+     * Despachar petición - CORREGIDO (ahora transfiere stock)
      */
     public boolean despacharPeticion(int peticionId) {
         try {

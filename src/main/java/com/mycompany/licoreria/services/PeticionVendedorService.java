@@ -65,7 +65,7 @@ public class PeticionVendedorService {
 
         if (producto != null && cantidadSolicitada > producto.getStockBodega()) {
             throw new IllegalArgumentException("Stock insuficiente en bodega. Disponible: " +
-                    producto.getStockBodega());
+                    producto.getStockBodega() + ", Solicitado: " + cantidadSolicitada);
         }
 
         PeticionVendedor peticion = new PeticionVendedor(productoId, usuarioId, cantidadSolicitada, observaciones);
@@ -90,11 +90,11 @@ public class PeticionVendedorService {
     }
 
     /**
-     * Eliminar petición
+     * Eliminar petición - CORREGIDO (sin usuario hardcodeado)
      */
-    public boolean eliminarPeticion(int peticionId) {
+    public boolean eliminarPeticion(int peticionId, int usuarioId) {
         // Verificar que la petición existe y está pendiente
-        List<PeticionVendedor> peticiones = getPeticionesPorVendedor(1); // Usuario temporal
+        List<PeticionVendedor> peticiones = getPeticionesPorVendedor(usuarioId);
         boolean peticionValida = peticiones.stream()
                 .anyMatch(p -> p.getPeticionId() == peticionId && "pendiente".equals(p.getEstado()));
 
@@ -146,5 +146,20 @@ public class PeticionVendedorService {
                 .filter(p -> p.getProductoId() == productoId)
                 .findFirst()
                 .orElse(null);
+    }
+
+    /**
+     * Obtener petición por ID
+     */
+    public PeticionVendedor getPeticionPorId(int peticionId, int usuarioId) {
+        List<PeticionVendedor> peticiones = getPeticionesPorVendedor(usuarioId);
+        return peticiones.stream()
+                .filter(p -> p.getPeticionId() == peticionId)
+                .findFirst()
+                .orElse(null);
+    }
+
+    public boolean eliminarPeticion(int peticionId) {
+        return false;
     }
 }

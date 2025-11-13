@@ -8,6 +8,7 @@ import java.awt.event.*;
 import java.util.HashMap;
 import java.util.Map;
 
+
 public class Licoreria {
     private static JFrame frame;
     private static JDesktopPane desktopPane;
@@ -338,20 +339,6 @@ public class Licoreria {
         menuVendedor.addSeparator();
         menuVendedor.add(crearMenuItem("Módulo Completo de Vendedor", 'M', "F11", e -> abrirVendedorMainForm()));
 
-        // Menú Inventario (admin y bodega)
-        JMenu menuInventario = crearMenu("Inventario", 'I');
-        menus.put("INVENTARIO", menuInventario);
-
-        menuInventario.add(crearMenuItem("Gestión de Productos", 'P', "Ctrl+I", e -> mostrarMensajeEnDesarrollo("Gestión de Productos")));
-        menuInventario.add(crearMenuItem("Control de Stock", 'S', "Ctrl+Shift+I", e -> mostrarMensajeEnDesarrollo("Control de Stock")));
-
-        // Menú Reportes (solo admin)
-        JMenu menuReportes = crearMenu("Reportes", 'R');
-        menus.put("REPORTES", menuReportes);
-
-        menuReportes.add(crearMenuItem("Reporte de Ventas", 'V', "F12", e -> mostrarMensajeEnDesarrollo("Reporte de Ventas")));
-        menuReportes.add(crearMenuItem("Reporte de Stock", 'S', "Shift+F12", e -> mostrarMensajeEnDesarrollo("Reporte de Stock")));
-
         // Menú Ayuda (siempre visible)
         JMenu menuAyuda = crearMenu("Ayuda", 'y');
         menuAyuda.add(crearMenuItem("Acerca de...", 'A', "F1", e -> mostrarAcercaDe()));
@@ -447,14 +434,6 @@ public class Licoreria {
             menuBar.add(menus.get("VENTAS"));
         }
 
-        if (SessionManager.tienePermiso("INVENTARIO")) {
-            menuBar.add(menus.get("INVENTARIO"));
-        }
-
-        if (SessionManager.tienePermiso("REPORTES")) {
-            menuBar.add(menus.get("REPORTES"));
-        }
-
         // Siempre agregar menú Ayuda
         menuBar.add(Box.createHorizontalGlue()); // Empuja el último menú a la derecha
         menuBar.add(menus.get("AYUDA"));
@@ -535,11 +514,8 @@ public class Licoreria {
             modulos.append("<li>👥 Administración Completa</li>");
             modulos.append("<li>📦 Módulo de Bodega</li>");
             modulos.append("<li>🛒 Módulo de Vendedor</li>");
-            modulos.append("<li>📊 Reportes</li>");
-            modulos.append("<li>📋 Inventario</li>");
         } else if (SessionManager.esBodega()) {
             modulos.append("<li>📦 Módulo de Bodega</li>");
-            modulos.append("<li>📋 Inventario</li>");
         } else if (SessionManager.esVendedor()) {
             modulos.append("<li>🛒 Punto de Venta</li>");
             modulos.append("<li>📮 Solicitar Stock</li>");

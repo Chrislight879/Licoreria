@@ -303,7 +303,7 @@ public class PeticionBodegaDAO {
     }
 
     /**
-     * Despachar petición (marcar como completada)
+     * Despachar petición (marcar como completada) - VIEJO MÉTODO
      */
     public boolean despacharPeticion(int peticionId) {
         String sql = "UPDATE PeticionesStock SET " +
@@ -317,6 +317,116 @@ public class PeticionBodegaDAO {
         } catch (SQLException e) {
             e.printStackTrace();
             return false;
+        }
+    }
+
+    /**
+     * Despachar petición completa con transferencia de stock - NUEVO MÉTODO
+     */
+    public boolean despacharPeticionCompleta(int peticionId) {
+        Connection conn = null;
+        try {
+            conn = DatabaseConnection.getConnection();
+            conn.setAutoCommit(false);
+
+            // 1. Obtener información de la petición
+            String sqlSelect = "SELECT producto_id, cantidad_solicitada FROM PeticionesStock " +
+                    "WHERE peticion_id = ? AND estado = 'aprobada' AND activo = true";
+
+            int productoId;
+            double cantidad;
+
+            try (PreparedStatement stmt = conn.prepareStatement(sqlSelect)) {
+                stmt.setInt(1, peticionId);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (!rs.next()) {
+                        throw new SQLException("Petición no encontrada o no está aprobada");
+                    }
+                    productoId = rs.getInt("producto_id");
+                    cantidad = rs.getDouble("cantidad_solicitada");
+                }
+            }
+
+            // 2. Verificar stock en bodega
+            String sqlVerificarStock = "SELECT cantidad_disponible FROM InventarioBodega " +
+                    "WHERE producto_id = ? AND activo = true AND cantidad_disponible >= ?";
+
+            try (PreparedStatement stmt = conn.prepareStatement(sqlVerificarStock)) {
+                stmt.setInt(1, productoId);
+                stmt.setDouble(2, cantidad);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (!rs.next()) {
+                        throw new SQLException("Stock insuficiente en bodega");
+                    }
+                }
+            }
+
+            // 3. Actualizar stock de bodega (restar)
+            String sqlBodega = "UPDATE InventarioBodega SET " +
+                    "cantidad_disponible = cantidad_disponible - ?, " +
+                    "fecha_actualizacion = CURRENT_TIMESTAMP " +
+                    "WHERE producto_id = ? AND activo = true";
+
+            try (PreparedStatement stmt = conn.prepareStatement(sqlBodega)) {
+                stmt.setDouble(1, cantidad);
+                stmt.setInt(2, productoId);
+                int affectedRows = stmt.executeUpdate();
+                if (affectedRows == 0) {
+                    throw new SQLException("Error al actualizar stock de bodega");
+                }
+            }
+
+            // 4. Actualizar stock de vendedor (sumar)
+            String sqlVendedor = "UPDATE InventarioVendedor SET " +
+                    "cantidad_disponible = cantidad_disponible + ?, " +
+                    "fecha_actualizacion = CURRENT_TIMESTAMP " +
+                    "WHERE producto_id = ? AND activo = true";
+
+            try (PreparedStatement stmt = conn.prepareStatement(sqlVendedor)) {
+                stmt.setDouble(1, cantidad);
+                stmt.setInt(2, productoId);
+                int affectedRows = stmt.executeUpdate();
+                if (affectedRows == 0) {
+                    throw new SQLException("Error al actualizar stock de vendedor");
+                }
+            }
+
+            // 5. Marcar petición como despachada
+            String sqlDespachar = "UPDATE PeticionesStock SET " +
+                    "estado = 'despachada', " +
+                    "fecha_despacho = CURRENT_TIMESTAMP " +
+                    "WHERE peticion_id = ?";
+
+            try (PreparedStatement stmt = conn.prepareStatement(sqlDespachar)) {
+                stmt.setInt(1, peticionId);
+                int affectedRows = stmt.executeUpdate();
+                if (affectedRows == 0) {
+                    throw new SQLException("Error al marcar petición como despachada");
+                }
+            }
+
+            conn.commit();
+            return true;
+
+        } catch (SQLException e) {
+            if (conn != null) {
+                try {
+                    conn.rollback();
+                } catch (SQLException ex) {
+                    System.err.println("Error al hacer rollback: " + ex.getMessage());
+                }
+            }
+            System.err.println("Error en transacción de despacho para petición " + peticionId + ": " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.setAutoCommit(true);
+                } catch (SQLException e) {
+                    System.err.println("Error al restaurar auto-commit: " + e.getMessage());
+                }
+            }
         }
     }
 

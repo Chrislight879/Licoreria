@@ -14,9 +14,9 @@ public class VentaRapidaController {
     }
 
     /**
-     * Obtener productos para venta rápida
+     * Obtener productos para venta - CORREGIDO
      */
-    public List<Producto> getProductosParaVentaRapida() {
+    public List<Producto> getProductosParaVenta() {
         try {
             return ventaRapidaService.getProductosParaVentaRapida();
         } catch (Exception e) {
@@ -25,9 +25,9 @@ public class VentaRapidaController {
     }
 
     /**
-     * Buscar productos para venta rápida
+     * Buscar productos - CORREGIDO
      */
-    public List<Producto> buscarProductosVentaRapida(String searchTerm) {
+    public List<Producto> buscarProductos(String searchTerm) {
         try {
             return ventaRapidaService.buscarProductosVentaRapida(searchTerm);
         } catch (Exception e) {
@@ -134,7 +134,7 @@ public class VentaRapidaController {
      */
     public Producto getProductoPorId(int productoId) {
         try {
-            List<Producto> productos = getProductosParaVentaRapida();
+            List<Producto> productos = getProductosParaVenta();
             return productos.stream()
                     .filter(p -> p.getProductoId() == productoId)
                     .findFirst()
@@ -155,13 +155,5 @@ public class VentaRapidaController {
         } catch (Exception e) {
             return "F-0001";
         }
-    }
-
-    public List<Producto> getProductosParaVenta() {
-        return List.of();
-    }
-
-    public List<Producto> buscarProductos(String searchTerm) {
-        return List.of();
     }
 }

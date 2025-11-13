@@ -20,11 +20,8 @@ public class BodegaVerPeticiones extends JInternalFrame {
     private TableRowSorter<DefaultTableModel> sorter;
     private JTextField txtSearch;
     private JComboBox<String> cmbEstadoFilter;
-    private JButton btnSearch, btnClearFilters, btnAprobar, btnRechazar, btnDespachar, btnRefresh;
+    private JButton btnClearFilters, btnAprobar, btnRechazar, btnDespachar, btnRefresh;
     private JLabel lblStats;
-
-    // Paneles
-    private JTabbedPane tabbedPane;
 
     // Paleta de colores azules mejorada
     private final Color PRIMARY_COLOR = new Color(70, 130, 180); // SteelBlue - azul principal
@@ -47,29 +44,29 @@ public class BodegaVerPeticiones extends JInternalFrame {
     }
 
     private void initComponents() {
-        setTitle("Peticiones de Vendedores - Módulo Bodega");
+        setTitle("📋 Peticiones de Vendedores - Bodega");
         setClosable(true);
         setResizable(true);
         setMaximizable(true);
         setIconifiable(true);
         setDefaultCloseOperation(JInternalFrame.DISPOSE_ON_CLOSE);
 
-        setSize(1200, 800);
-        setLayout(new BorderLayout(10, 10));
+        setSize(1100, 600); // Ventana más compacta
+        setLayout(new BorderLayout(5, 5));
 
         // Panel principal con gradiente
         JPanel mainPanel = new GradientPanel();
-        mainPanel.setLayout(new BorderLayout(10, 10));
-        mainPanel.setBorder(createEmptyBorder(15, 15, 15, 15));
+        mainPanel.setLayout(new BorderLayout(5, 5));
+        mainPanel.setBorder(createEmptyBorder(8, 8, 8, 8));
 
-        // Header
+        // Header compacto
         mainPanel.add(createHeaderPanel(), BorderLayout.NORTH);
 
-        // Filtros y acciones
+        // Panel de filtros y botones - AHORA MÁS VISIBLE
         mainPanel.add(createFiltersPanel(), BorderLayout.CENTER);
 
-        // Contenido principal
-        mainPanel.add(createContentPanel(), BorderLayout.SOUTH);
+        // Tabla compacta
+        mainPanel.add(createTablePanel(), BorderLayout.SOUTH);
 
         add(mainPanel);
 
@@ -82,39 +79,31 @@ public class BodegaVerPeticiones extends JInternalFrame {
         headerPanel.setBackground(new Color(0, 0, 0, 0));
         headerPanel.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(BORDER_COLOR, 1),
-                createEmptyBorder(15, 20, 15, 20)
+                createEmptyBorder(6, 10, 6, 10)
         ));
 
-        // Título y información
-        JPanel titlePanel = new JPanel(new BorderLayout());
-        titlePanel.setBackground(new Color(0, 0, 0, 0));
-
-        JLabel titleLabel = new JLabel("📋 Peticiones de Vendedores");
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        // Título compacto
+        JLabel titleLabel = new JLabel("📦 GESTIÓN DE PETICIONES");
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
         titleLabel.setForeground(TEXT_WHITE);
 
-        JLabel userLabel = new JLabel("Bodeguero: " + SessionManager.getCurrentUser().getUsername());
-        userLabel.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        userLabel.setForeground(new Color(180, 200, 255));
-
-        titlePanel.add(titleLabel, BorderLayout.WEST);
-        titlePanel.add(userLabel, BorderLayout.EAST);
-
-        // Estadísticas
-        JPanel statsPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 0));
+        // Panel de estadísticas
+        JPanel statsPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
         statsPanel.setBackground(new Color(0, 0, 0, 0));
 
-        lblStats = new JLabel("Cargando estadísticas...");
-        lblStats.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        lblStats = new JLabel("Cargando...");
+        lblStats.setFont(new Font("Segoe UI", Font.BOLD, 11));
         lblStats.setForeground(TEXT_WHITE);
 
-        btnRefresh = new ModernButton("🔄 Actualizar", ACCENT_COLOR);
+        btnRefresh = new ModernButton("🔄", ACCENT_COLOR);
+        btnRefresh.setToolTipText("Actualizar lista");
+        btnRefresh.setPreferredSize(new Dimension(35, 25));
         btnRefresh.addActionListener(e -> refreshData());
 
         statsPanel.add(lblStats);
         statsPanel.add(btnRefresh);
 
-        headerPanel.add(titlePanel, BorderLayout.WEST);
+        headerPanel.add(titleLabel, BorderLayout.WEST);
         headerPanel.add(statsPanel, BorderLayout.EAST);
 
         return headerPanel;
@@ -124,142 +113,120 @@ public class BodegaVerPeticiones extends JInternalFrame {
         JPanel filtersPanel = new JPanel(new BorderLayout());
         filtersPanel.setBackground(CARD_BACKGROUND);
         filtersPanel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createTitledBorder(
-                        BorderFactory.createLineBorder(SECONDARY_COLOR, 2),
-                        "Filtros y Acciones Rápidas",
-                        0, 0,
-                        new Font("Segoe UI", Font.BOLD, 14),
-                        TEXT_WHITE
-                ),
-                createEmptyBorder(20, 20, 20, 20)
+                BorderFactory.createLineBorder(SECONDARY_COLOR, 1),
+                createEmptyBorder(8, 10, 8, 10)
         ));
 
-        // Panel principal de filtros
-        JPanel mainFiltersPanel = new JPanel(new GridBagLayout());
-        mainFiltersPanel.setBackground(CARD_BACKGROUND);
+        // Panel de búsqueda rápida
+        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
+        searchPanel.setBackground(CARD_BACKGROUND);
 
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.insets = new Insets(5, 5, 5, 5);
-        gbc.weightx = 1.0;
-
-        // Búsqueda
-        gbc.gridx = 0; gbc.gridy = 0; gbc.gridwidth = 1;
-        JLabel lblSearch = new JLabel("Búsqueda:");
-        lblSearch.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        JLabel lblSearch = new JLabel("Buscar:");
+        lblSearch.setFont(new Font("Segoe UI", Font.BOLD, 11));
         lblSearch.setForeground(TEXT_WHITE);
-        mainFiltersPanel.add(lblSearch, gbc);
 
-        gbc.gridx = 1; gbc.gridy = 0; gbc.gridwidth = 2;
-        txtSearch = new ModernTextField("Buscar por producto, vendedor o observaciones...");
+        txtSearch = new ModernTextField("producto, vendedor...");
+        txtSearch.setPreferredSize(new Dimension(180, 28));
         txtSearch.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
             public void insertUpdate(javax.swing.event.DocumentEvent e) { filterData(); }
             public void removeUpdate(javax.swing.event.DocumentEvent e) { filterData(); }
             public void changedUpdate(javax.swing.event.DocumentEvent e) { filterData(); }
         });
-        mainFiltersPanel.add(txtSearch, gbc);
 
-        // Filtro por estado
-        gbc.gridx = 3; gbc.gridy = 0;
         JLabel lblEstado = new JLabel("Estado:");
-        lblEstado.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lblEstado.setFont(new Font("Segoe UI", Font.BOLD, 11));
         lblEstado.setForeground(TEXT_WHITE);
-        mainFiltersPanel.add(lblEstado, gbc);
 
-        gbc.gridx = 4; gbc.gridy = 0;
         cmbEstadoFilter = new ModernComboBox();
-        cmbEstadoFilter.addItem("Todos los estados");
+        cmbEstadoFilter.setPreferredSize(new Dimension(120, 28));
+        cmbEstadoFilter.addItem("Todos");
         cmbEstadoFilter.addItem("pendiente");
         cmbEstadoFilter.addItem("aprobada");
         cmbEstadoFilter.addItem("rechazada");
         cmbEstadoFilter.addItem("despachada");
         cmbEstadoFilter.addActionListener(e -> filterData());
-        mainFiltersPanel.add(cmbEstadoFilter, gbc);
 
-        // Botones de acción
-        gbc.gridx = 0; gbc.gridy = 1; gbc.gridwidth = 5;
-        gbc.insets = new Insets(15, 5, 5, 5);
+        btnClearFilters = new ModernButton("🧹", new Color(149, 165, 166));
+        btnClearFilters.setToolTipText("Limpiar filtros");
+        btnClearFilters.setPreferredSize(new Dimension(35, 28));
+        btnClearFilters.addActionListener(e -> clearFilters());
 
-        JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
+        searchPanel.add(lblSearch);
+        searchPanel.add(txtSearch);
+        searchPanel.add(Box.createHorizontalStrut(10));
+        searchPanel.add(lblEstado);
+        searchPanel.add(cmbEstadoFilter);
+        searchPanel.add(Box.createHorizontalStrut(5));
+        searchPanel.add(btnClearFilters);
+
+        // Panel de botones de acción - AHORA MÁS PROMINENTE
+        JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 0));
         actionPanel.setBackground(CARD_BACKGROUND);
+        actionPanel.setBorder(BorderFactory.createTitledBorder(
+                BorderFactory.createLineBorder(SECONDARY_COLOR, 1),
+                "ACCIONES RÁPIDAS",
+                0, 0,
+                new Font("Segoe UI", Font.BOLD, 11),
+                TEXT_WHITE
+        ));
 
-        btnAprobar = new ModernButton("✅ Aprobar Petición", SUCCESS_COLOR);
+        btnAprobar = new ModernButton("✅ APROBAR", SUCCESS_COLOR);
+        btnAprobar.setPreferredSize(new Dimension(110, 35));
+        btnAprobar.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        btnAprobar.setEnabled(false);
         btnAprobar.addActionListener(e -> aprobarPeticion());
 
-        btnRechazar = new ModernButton("❌ Rechazar Petición", DANGER_COLOR);
+        btnRechazar = new ModernButton("❌ RECHAZAR", DANGER_COLOR);
+        btnRechazar.setPreferredSize(new Dimension(110, 35));
+        btnRechazar.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        btnRechazar.setEnabled(false);
         btnRechazar.addActionListener(e -> rechazarPeticion());
 
-        btnDespachar = new ModernButton("🚚 Despachar Stock", INFO_COLOR);
+        btnDespachar = new ModernButton("🚚 DESPACHAR", INFO_COLOR);
+        btnDespachar.setPreferredSize(new Dimension(110, 35));
+        btnDespachar.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        btnDespachar.setEnabled(false);
         btnDespachar.addActionListener(e -> despacharPeticion());
-
-        btnClearFilters = new ModernButton("🧹 Limpiar Filtros", new Color(149, 165, 166));
-        btnClearFilters.addActionListener(e -> clearFilters());
 
         actionPanel.add(btnAprobar);
         actionPanel.add(btnRechazar);
         actionPanel.add(btnDespachar);
-        actionPanel.add(Box.createHorizontalStrut(20));
-        actionPanel.add(btnClearFilters);
 
-        mainFiltersPanel.add(actionPanel, gbc);
+        // Panel principal que combina búsqueda y acciones
+        JPanel mainPanel = new JPanel(new BorderLayout());
+        mainPanel.setBackground(CARD_BACKGROUND);
+        mainPanel.add(searchPanel, BorderLayout.WEST);
+        mainPanel.add(actionPanel, BorderLayout.CENTER);
 
-        filtersPanel.add(mainFiltersPanel, BorderLayout.CENTER);
+        filtersPanel.add(mainPanel, BorderLayout.CENTER);
 
         return filtersPanel;
     }
 
-    private JPanel createContentPanel() {
-        JPanel contentPanel = new JPanel(new BorderLayout());
-        contentPanel.setBackground(CARD_BACKGROUND);
-        contentPanel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createTitledBorder(
-                        BorderFactory.createLineBorder(SECONDARY_COLOR, 2),
-                        "Gestión de Peticiones",
-                        0, 0,
-                        new Font("Segoe UI", Font.BOLD, 14),
-                        TEXT_WHITE
-                ),
-                createEmptyBorder(20, 20, 20, 20)
+    private JPanel createTablePanel() {
+        JPanel tablePanel = new JPanel(new BorderLayout());
+        tablePanel.setBackground(CARD_BACKGROUND);
+        tablePanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(SECONDARY_COLOR, 1),
+                createEmptyBorder(8, 8, 8, 8)
         ));
 
-        // Crear pestañas
-        tabbedPane = new JTabbedPane();
-        tabbedPane.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        tabbedPane.setBackground(CARD_BACKGROUND);
-        tabbedPane.setForeground(TEXT_WHITE);
-
-        // Pestañas principales
-        tabbedPane.addTab("⏳ Peticiones Pendientes", createPendientesTab());
-        tabbedPane.addTab("✅ Peticiones Aprobadas", createAprobadasTab());
-        tabbedPane.addTab("📊 Todas las Peticiones", createTodasTab());
-        tabbedPane.addTab("🚨 Peticiones Críticas", createCriticasTab());
-
-        contentPanel.add(tabbedPane, BorderLayout.CENTER);
-
-        return contentPanel;
-    }
-
-    private JPanel createPendientesTab() {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(CARD_BACKGROUND);
-
-        // Crear tabla para peticiones pendientes
+        // Columnas MÁS COMPACTAS
         String[] columnNames = {
-                "ID", "Producto", "Vendedor", "Cantidad", "Unidad",
-                "Fecha Solicitud", "Stock Bodega", "Mínimo Vendedor", "Observaciones", "Acciones"
+                "ID", "Producto", "Vendedor", "Cant", "Unid", "Fecha", "Stock", "Estado"
         };
 
         tableModel = new DefaultTableModel(columnNames, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return column == 9; // Solo la columna de acciones es editable
+                return false;
             }
 
             @Override
             public Class<?> getColumnClass(int columnIndex) {
                 return switch (columnIndex) {
                     case 0 -> Integer.class; // ID
-                    case 3, 6, 7 -> Double.class; // Cantidad, Stock Bodega, Mínimo Vendedor
+                    case 3, 6 -> Double.class; // Cantidad, Stock
                     default -> String.class;
                 };
             }
@@ -269,155 +236,43 @@ public class BodegaVerPeticiones extends JInternalFrame {
         sorter = new TableRowSorter<>(tableModel);
         peticionesTable.setRowSorter(sorter);
 
-        // Configurar tabla
-        setupTable();
+        // Configurar tabla MÁS COMPACTA
+        setupCompactTable();
 
         JScrollPane scrollPane = new JScrollPane(peticionesTable);
         scrollPane.setBorder(BorderFactory.createLineBorder(BORDER_COLOR, 1));
         scrollPane.getViewport().setBackground(new Color(50, 65, 95));
+        scrollPane.getVerticalScrollBar().setUnitIncrement(12);
 
-        // Panel de información
-        JPanel infoPanel = createInfoPanel();
+        // Información compacta
+        JPanel infoPanel = new JPanel(new BorderLayout());
+        infoPanel.setBackground(CARD_BACKGROUND);
+        infoPanel.setBorder(createEmptyBorder(4, 0, 0, 0));
 
-        panel.add(scrollPane, BorderLayout.CENTER);
-        panel.add(infoPanel, BorderLayout.SOUTH);
+        JLabel infoLabel = new JLabel("💡 Seleccione una petición para gestionarla");
+        infoLabel.setFont(new Font("Segoe UI", Font.PLAIN, 9));
+        infoLabel.setForeground(new Color(180, 200, 255));
 
-        return panel;
+        JLabel countLabel = new JLabel();
+        countLabel.setFont(new Font("Segoe UI", Font.BOLD, 9));
+        countLabel.setForeground(TEXT_WHITE);
+
+        tableModel.addTableModelListener(e -> {
+            countLabel.setText("Total: " + tableModel.getRowCount());
+        });
+
+        infoPanel.add(infoLabel, BorderLayout.WEST);
+        infoPanel.add(countLabel, BorderLayout.EAST);
+
+        tablePanel.add(scrollPane, BorderLayout.CENTER);
+        tablePanel.add(infoPanel, BorderLayout.SOUTH);
+
+        return tablePanel;
     }
 
-    private JPanel createAprobadasTab() {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(CARD_BACKGROUND);
-        panel.setBorder(createEmptyBorder(20, 20, 20, 20));
-
-        JLabel label = new JLabel(
-                "<html><div style='text-align: center; color: #BDC3C7;'>" +
-                        "<h3>✅ Peticiones Aprobadas</h3>" +
-                        "<p>Peticiones que han sido aprobadas y están listas para despacho</p>" +
-                        "<p><small>Gestión de peticiones aprobadas pendientes de enviar a vendedores</small></p>" +
-                        "</div></html>",
-                SwingConstants.CENTER
-        );
-        label.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-
-        panel.add(label, BorderLayout.CENTER);
-
-        return panel;
-    }
-
-    private JPanel createTodasTab() {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(CARD_BACKGROUND);
-        panel.setBorder(createEmptyBorder(20, 20, 20, 20));
-
-        JLabel label = new JLabel(
-                "<html><div style='text-align: center; color: #BDC3C7;'>" +
-                        "<h3>📊 Todas las Peticiones</h3>" +
-                        "<p>Vista completa de todas las peticiones del sistema</p>" +
-                        "<p><small>Historial completo de solicitudes de vendedores</small></p>" +
-                        "</div></html>",
-                SwingConstants.CENTER
-        );
-        label.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-
-        panel.add(label, BorderLayout.CENTER);
-
-        return panel;
-    }
-
-    private JPanel createCriticasTab() {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(CARD_BACKGROUND);
-        panel.setBorder(createEmptyBorder(20, 20, 20, 20));
-
-        // Panel de alertas críticas
-        JPanel alertasPanel = new JPanel();
-        alertasPanel.setLayout(new BoxLayout(alertasPanel, BoxLayout.Y_AXIS));
-        alertasPanel.setBackground(CARD_BACKGROUND);
-
-        JLabel titulo = new JLabel("🚨 Peticiones Críticas - Atención Requerida");
-        titulo.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        titulo.setForeground(DANGER_COLOR);
-        titulo.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-        alertasPanel.add(titulo);
-        alertasPanel.add(Box.createVerticalStrut(20));
-
-        // Alertas de ejemplo (se cargarían dinámicamente)
-        alertasPanel.add(createAlertaCritica(
-                "🔴 Stock Insuficiente",
-                "Ron Zacapa Centenario - Solicitado: 10 unidades - Stock: 5 unidades",
-                "El vendedor Juan Pérez solicita más stock del disponible",
-                DANGER_COLOR
-        ));
-
-        alertasPanel.add(Box.createVerticalStrut(10));
-
-        alertasPanel.add(createAlertaCritica(
-                "🟡 Múltiples Solicitudes",
-                "Cerveza Artesanal IPA - 3 peticiones pendientes",
-                "Varios vendedores han solicitado este producto",
-                WARNING_COLOR
-        ));
-
-        alertasPanel.add(Box.createVerticalStrut(10));
-
-        alertasPanel.add(createAlertaCritica(
-                "🔵 Urgente - Stock Cero",
-                "Vino Tinto Reserva - Stock: 0 unidades",
-                "Producto agotado en bodega, peticiones en espera",
-                INFO_COLOR
-        ));
-
-        JScrollPane scrollPane = new JScrollPane(alertasPanel);
-        scrollPane.setBorder(createEmptyBorder());
-        scrollPane.getViewport().setBackground(CARD_BACKGROUND);
-
-        panel.add(scrollPane, BorderLayout.CENTER);
-
-        return panel;
-    }
-
-    private JPanel createAlertaCritica(String titulo, String descripcion, String detalle, Color color) {
-        JPanel alertaPanel = new JPanel(new BorderLayout());
-        alertaPanel.setBackground(new Color(60, 75, 100));
-        alertaPanel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(color, 2),
-                createEmptyBorder(15, 15, 15, 15)
-        ));
-        alertaPanel.setMaximumSize(new Dimension(600, 100));
-
-        JLabel tituloLabel = new JLabel(titulo);
-        tituloLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        tituloLabel.setForeground(color);
-
-        JLabel descLabel = new JLabel(descripcion);
-        descLabel.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        descLabel.setForeground(TEXT_WHITE);
-
-        JLabel detalleLabel = new JLabel(detalle);
-        detalleLabel.setFont(new Font("Segoe UI", Font.PLAIN, 10));
-        detalleLabel.setForeground(new Color(180, 200, 255));
-
-        JPanel textPanel = new JPanel();
-        textPanel.setLayout(new BoxLayout(textPanel, BoxLayout.Y_AXIS));
-        textPanel.setBackground(new Color(60, 75, 100));
-        textPanel.add(tituloLabel);
-        textPanel.add(descLabel);
-        textPanel.add(detalleLabel);
-
-        JButton actionBtn = new ModernButton("Resolver", color);
-        actionBtn.setPreferredSize(new Dimension(100, 35));
-
-        alertaPanel.add(textPanel, BorderLayout.CENTER);
-        alertaPanel.add(actionBtn, BorderLayout.EAST);
-
-        return alertaPanel;
-    }
-
-    private void setupTable() {
-        peticionesTable.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        peticionesTable.setRowHeight(40);
+    private void setupCompactTable() {
+        peticionesTable.setFont(new Font("Segoe UI", Font.PLAIN, 10));
+        peticionesTable.setRowHeight(24); // FILAS MÁS COMPACTAS
         peticionesTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         peticionesTable.setIntercellSpacing(new Dimension(0, 0));
         peticionesTable.setShowGrid(false);
@@ -428,28 +283,26 @@ public class BodegaVerPeticiones extends JInternalFrame {
         peticionesTable.setSelectionBackground(ACCENT_COLOR);
         peticionesTable.setSelectionForeground(TEXT_WHITE);
 
-        // Header personalizado
+        // Header compacto
         JTableHeader header = peticionesTable.getTableHeader();
-        header.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        header.setFont(new Font("Segoe UI", Font.BOLD, 10));
         header.setBackground(PRIMARY_COLOR);
         header.setForeground(TEXT_WHITE);
-        header.setPreferredSize(new Dimension(header.getWidth(), 40));
+        header.setPreferredSize(new Dimension(header.getWidth(), 28));
 
-        // Anchos de columnas
-        peticionesTable.getColumnModel().getColumn(0).setPreferredWidth(60);  // ID
-        peticionesTable.getColumnModel().getColumn(1).setPreferredWidth(150); // Producto
-        peticionesTable.getColumnModel().getColumn(2).setPreferredWidth(120); // Vendedor
-        peticionesTable.getColumnModel().getColumn(3).setPreferredWidth(80);  // Cantidad
-        peticionesTable.getColumnModel().getColumn(4).setPreferredWidth(80);  // Unidad
-        peticionesTable.getColumnModel().getColumn(5).setPreferredWidth(120); // Fecha
-        peticionesTable.getColumnModel().getColumn(6).setPreferredWidth(100); // Stock Bodega
-        peticionesTable.getColumnModel().getColumn(7).setPreferredWidth(100); // Mínimo Vendedor
-        peticionesTable.getColumnModel().getColumn(8).setPreferredWidth(200); // Observaciones
-        peticionesTable.getColumnModel().getColumn(9).setPreferredWidth(150); // Acciones
+        // Anchos de columnas MÁS COMPACTOS
+        peticionesTable.getColumnModel().getColumn(0).setPreferredWidth(40);   // ID
+        peticionesTable.getColumnModel().getColumn(1).setPreferredWidth(120);  // Producto
+        peticionesTable.getColumnModel().getColumn(2).setPreferredWidth(90);   // Vendedor
+        peticionesTable.getColumnModel().getColumn(3).setPreferredWidth(50);   // Cantidad
+        peticionesTable.getColumnModel().getColumn(4).setPreferredWidth(45);   // Unidad
+        peticionesTable.getColumnModel().getColumn(5).setPreferredWidth(80);   // Fecha
+        peticionesTable.getColumnModel().getColumn(6).setPreferredWidth(60);   // Stock
+        peticionesTable.getColumnModel().getColumn(7).setPreferredWidth(70);   // Estado
 
         // Renderers personalizados
-        peticionesTable.getColumnModel().getColumn(6).setCellRenderer((TableCellRenderer) new StockBodegaRenderer());
-        peticionesTable.getColumnModel().getColumn(9).setCellRenderer((TableCellRenderer) new AccionesRenderer());
+        peticionesTable.getColumnModel().getColumn(6).setCellRenderer(new StockBodegaRenderer());
+        peticionesTable.getColumnModel().getColumn(7).setCellRenderer(new EstadoRenderer());
 
         // Listener para selección
         peticionesTable.getSelectionModel().addListSelectionListener(e -> {
@@ -457,30 +310,6 @@ public class BodegaVerPeticiones extends JInternalFrame {
                 updateButtonStates();
             }
         });
-    }
-
-    private JPanel createInfoPanel() {
-        JPanel infoPanel = new JPanel(new BorderLayout());
-        infoPanel.setBackground(CARD_BACKGROUND);
-        infoPanel.setBorder(createEmptyBorder(10, 0, 0, 0));
-
-        JLabel infoLabel = new JLabel("💡 Seleccione una petición para aprobar, rechazar o despachar. Las peticiones críticas se muestran en rojo.");
-        infoLabel.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        infoLabel.setForeground(new Color(180, 200, 255));
-
-        JLabel countLabel = new JLabel();
-        countLabel.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        countLabel.setForeground(TEXT_WHITE);
-
-        // Actualizar contador
-        tableModel.addTableModelListener(e -> {
-            countLabel.setText("Peticiones mostradas: " + tableModel.getRowCount());
-        });
-
-        infoPanel.add(infoLabel, BorderLayout.WEST);
-        infoPanel.add(countLabel, BorderLayout.EAST);
-
-        return infoPanel;
     }
 
     private void loadPeticionesData() {
@@ -503,25 +332,29 @@ public class BodegaVerPeticiones extends JInternalFrame {
                                 peticion.getUsuarioSolicitanteNombre(),
                                 peticion.getCantidadSolicitada(),
                                 peticion.getUnidadMedida(),
-                                peticion.getFechaSolicitud(),
+                                formatFecha(peticion.getFechaSolicitud()),
                                 peticion.getStockBodega(),
-                                peticion.getStockVendedor(), // Usando como mínimo vendedor
-                                peticion.getObservaciones(),
-                                "Acciones" // Placeholder para botones de acción
+                                peticion.getEstado()
                         };
                         tableModel.addRow(row);
                     }
 
                     updateStats(peticiones.size());
-                    showSuccess("Peticiones cargadas: " + peticiones.size() + " pendientes");
+                    showSuccess("Peticiones cargadas: " + peticiones.size());
 
                 } catch (Exception e) {
                     showError("Error al cargar peticiones: " + e.getMessage());
+                    e.printStackTrace();
                 }
             }
         };
 
         worker.execute();
+    }
+
+    private String formatFecha(java.sql.Timestamp fecha) {
+        if (fecha == null) return "";
+        return new java.text.SimpleDateFormat("dd/MM HH:mm").format(fecha);
     }
 
     private void filterData() {
@@ -530,56 +363,58 @@ public class BodegaVerPeticiones extends JInternalFrame {
 
         RowFilter<DefaultTableModel, Object> rf = RowFilter.regexFilter("(?i).*" + searchText + ".*");
 
-        if (selectedEstado != null && !selectedEstado.equals("Todos los estados")) {
-            // Para la tabla de pendientes, ya estamos filtrando por estado
-            // Este filtro adicional se aplicaría si mostráramos todos los estados
+        if (selectedEstado != null && !selectedEstado.equals("Todos")) {
+            RowFilter<DefaultTableModel, Object> estadoFilter = RowFilter.regexFilter("(?i)^" + selectedEstado + "$", 7);
+            rf = RowFilter.andFilter(java.util.List.of(rf, estadoFilter));
         }
 
         sorter.setRowFilter(rf);
     }
 
     private void clearFilters() {
-        txtSearch.setText("Buscar por producto, vendedor o observaciones...");
+        txtSearch.setText("producto, vendedor...");
         cmbEstadoFilter.setSelectedIndex(0);
         sorter.setRowFilter(null);
     }
 
     private void updateButtonStates() {
         int selectedRow = peticionesTable.getSelectedRow();
-        btnAprobar.setEnabled(selectedRow != -1);
-        btnRechazar.setEnabled(selectedRow != -1);
+        boolean tieneSeleccion = selectedRow != -1;
 
-        // Para despachar, necesitamos verificar el estado (pero en pendientes todas son despachables)
-        btnDespachar.setEnabled(selectedRow != -1);
+        if (tieneSeleccion) {
+            int modelRow = peticionesTable.convertRowIndexToModel(selectedRow);
+            Object estadoObj = tableModel.getValueAt(modelRow, 7);
+            String estado = estadoObj != null ? estadoObj.toString() : "";
+
+            // Actualizar botones según estado
+            btnAprobar.setEnabled("pendiente".equals(estado));
+            btnRechazar.setEnabled("pendiente".equals(estado));
+            btnDespachar.setEnabled("aprobada".equals(estado));
+
+        } else {
+            btnAprobar.setEnabled(false);
+            btnRechazar.setEnabled(false);
+            btnDespachar.setEnabled(false);
+        }
     }
 
     private void aprobarPeticion() {
         int selectedRow = peticionesTable.getSelectedRow();
         if (selectedRow == -1) {
-            showError("Debe seleccionar una petición para aprobar");
+            showError("Seleccione una petición para aprobar");
             return;
         }
 
         int modelRow = peticionesTable.convertRowIndexToModel(selectedRow);
         int peticionId = (int) tableModel.getValueAt(modelRow, 0);
         String producto = (String) tableModel.getValueAt(modelRow, 1);
-        String vendedor = (String) tableModel.getValueAt(modelRow, 2);
         double cantidad = (double) tableModel.getValueAt(modelRow, 3);
         double stockBodega = (double) tableModel.getValueAt(modelRow, 6);
 
         // Verificar stock
         if (cantidad > stockBodega) {
             int option = JOptionPane.showConfirmDialog(this,
-                    "<html><div style='text-align: center; padding: 10px;'>" +
-                            "<div style='background: #2C3E50; padding: 15px; border-radius: 8px; border-left: 4px solid #F39C12;'>" +
-                            "<div style='color: #FFFFFF; font-weight: bold; margin-bottom: 10px;'>⚠️ Stock Insuficiente</div>" +
-                            "<div style='color: #ECF0F1; text-align: left;'>" +
-                            "<p>Producto: <b>" + producto + "</b></p>" +
-                            "<p>Solicitado: <b>" + cantidad + "</b> | Disponible: <b>" + stockBodega + "</b></p>" +
-                            "<p>¿Desea aprobar parcialmente con el stock disponible?</p>" +
-                            "</div>" +
-                            "</div>" +
-                            "</div></html>",
+                    "<html>Stock insuficiente!<br>¿Aprobar parcialmente con " + stockBodega + " unidades?",
                     "Stock Insuficiente",
                     JOptionPane.YES_NO_OPTION,
                     JOptionPane.WARNING_MESSAGE);
@@ -590,20 +425,11 @@ public class BodegaVerPeticiones extends JInternalFrame {
         }
 
         String observaciones = JOptionPane.showInputDialog(this,
-                "<html><div style='text-align: center; padding: 10px;'>" +
-                        "<div style='background: #2C3E50; padding: 15px; border-radius: 8px; border-left: 4px solid #3498DB;'>" +
-                        "<div style='color: #FFFFFF; font-weight: bold; margin-bottom: 10px;'>Observaciones de Aprobación</div>" +
-                        "<div style='color: #ECF0F1; text-align: left;'>" +
-                        "<p>Producto: <b>" + producto + "</b></p>" +
-                        "<p>Vendedor: <b>" + vendedor + "</b></p>" +
-                        "<p>Cantidad: <b>" + cantidad + "</b></p>" +
-                        "</div>" +
-                        "</div>" +
-                        "</div></html>",
-                "Observaciones de Aprobación",
+                "Observaciones para la aprobación:",
+                "Aprobar Petición",
                 JOptionPane.QUESTION_MESSAGE);
 
-        if (observaciones != null) {
+        if (observaciones != null && !observaciones.trim().isEmpty()) {
             ejecutarAccionPeticion(peticionId, "aprobar", observaciones);
         }
     }
@@ -611,30 +437,19 @@ public class BodegaVerPeticiones extends JInternalFrame {
     private void rechazarPeticion() {
         int selectedRow = peticionesTable.getSelectedRow();
         if (selectedRow == -1) {
-            showError("Debe seleccionar una petición para rechazar");
+            showError("Seleccione una petición para rechazar");
             return;
         }
 
         int modelRow = peticionesTable.convertRowIndexToModel(selectedRow);
         int peticionId = (int) tableModel.getValueAt(modelRow, 0);
-        String producto = (String) tableModel.getValueAt(modelRow, 1);
-        String vendedor = (String) tableModel.getValueAt(modelRow, 2);
 
         String motivo = JOptionPane.showInputDialog(this,
-                "<html><div style='text-align: center; padding: 10px;'>" +
-                        "<div style='background: #2C3E50; padding: 15px; border-radius: 8px; border-left: 4px solid #E74C3C;'>" +
-                        "<div style='color: #FFFFFF; font-weight: bold; margin-bottom: 10px;'>Motivo del Rechazo</div>" +
-                        "<div style='color: #ECF0F1; text-align: left;'>" +
-                        "<p>Producto: <b>" + producto + "</b></p>" +
-                        "<p>Vendedor: <b>" + vendedor + "</b></p>" +
-                        "<p>¿Por qué rechaza esta petición?</p>" +
-                        "</div>" +
-                        "</div>" +
-                        "</div></html>",
-                "Motivo de Rechazo",
+                "Motivo del rechazo:",
+                "Rechazar Petición",
                 JOptionPane.QUESTION_MESSAGE);
 
-        if (motivo != null) {
+        if (motivo != null && !motivo.trim().isEmpty()) {
             ejecutarAccionPeticion(peticionId, "rechazar", motivo);
         }
     }
@@ -642,32 +457,22 @@ public class BodegaVerPeticiones extends JInternalFrame {
     private void despacharPeticion() {
         int selectedRow = peticionesTable.getSelectedRow();
         if (selectedRow == -1) {
-            showError("Debe seleccionar una petición para despachar");
+            showError("Seleccione una petición para despachar");
             return;
         }
 
         int modelRow = peticionesTable.convertRowIndexToModel(selectedRow);
         int peticionId = (int) tableModel.getValueAt(modelRow, 0);
         String producto = (String) tableModel.getValueAt(modelRow, 1);
-        double cantidad = (double) tableModel.getValueAt(modelRow, 3);
 
         int confirm = JOptionPane.showConfirmDialog(this,
-                "<html><div style='text-align: center; padding: 10px;'>" +
-                        "<div style='background: #2C3E50; padding: 15px; border-radius: 8px; border-left: 4px solid #9B59B6;'>" +
-                        "<div style='color: #FFFFFF; font-weight: bold; margin-bottom: 10px;'>🚚 Confirmar Despacho</div>" +
-                        "<div style='color: #ECF0F1; text-align: left;'>" +
-                        "<p>Producto: <b>" + producto + "</b></p>" +
-                        "<p>Cantidad: <b>" + cantidad + "</b></p>" +
-                        "<p><small>Esta acción transferirá el stock de bodega al vendedor</small></p>" +
-                        "</div>" +
-                        "</div>" +
-                        "</div></html>",
+                "<html>¿Despachar <b>" + producto + "</b>?",
                 "Confirmar Despacho",
                 JOptionPane.YES_NO_OPTION,
                 JOptionPane.QUESTION_MESSAGE);
 
         if (confirm == JOptionPane.YES_OPTION) {
-            ejecutarAccionPeticion(peticionId, "despachar", "Despachado por bodeguero");
+            ejecutarAccionPeticion(peticionId, "despachar", "Despachado por sistema");
         }
     }
 
@@ -694,10 +499,10 @@ public class BodegaVerPeticiones extends JInternalFrame {
                 try {
                     boolean success = get();
                     if (success) {
-                        showSuccess("Petición " + accion + "da exitosamente");
-                        loadPeticionesData(); // Recargar datos
+                        showSuccess("Acción completada exitosamente");
+                        refreshData();
                     } else {
-                        showError("Error al " + accion + " la petición");
+                        showError("Error al procesar la acción");
                     }
                 } catch (Exception e) {
                     showError("Error: " + e.getMessage());
@@ -709,7 +514,7 @@ public class BodegaVerPeticiones extends JInternalFrame {
     }
 
     private void refreshData() {
-        btnRefresh.setText("🔄 Cargando...");
+        btnRefresh.setText("⏳");
         btnRefresh.setEnabled(false);
 
         SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
@@ -721,7 +526,7 @@ public class BodegaVerPeticiones extends JInternalFrame {
 
             @Override
             protected void done() {
-                btnRefresh.setText("🔄 Actualizar");
+                btnRefresh.setText("🔄");
                 btnRefresh.setEnabled(true);
             }
         };
@@ -730,14 +535,13 @@ public class BodegaVerPeticiones extends JInternalFrame {
     }
 
     private void updateStats(int totalPendientes) {
-        String stats = peticionController.getEstadisticasPeticiones();
-        lblStats.setText("Pendientes: " + totalPendientes + " | " + stats);
+        lblStats.setText("Pendientes: " + totalPendientes);
     }
 
     private void setupModernDesign() {
         getRootPane().setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(BORDER_COLOR, 1),
-                BorderFactory.createEmptyBorder(2, 2, 2, 2)
+                BorderFactory.createEmptyBorder(1, 1, 1, 1)
         ));
     }
 
@@ -749,41 +553,25 @@ public class BodegaVerPeticiones extends JInternalFrame {
         }
     }
 
-    // Métodos de utilidad para mensajes (actualizados)
+    // Métodos de utilidad para mensajes
     private void showError(String message) {
-        JOptionPane.showMessageDialog(this,
-                "<html><div style='text-align: center; padding: 10px;'>" +
-                        "<div style='background: #2C3E50; padding: 15px; border-radius: 8px; border-left: 4px solid #E74C3C;'>" +
-                        "<div style='color: #FFFFFF; font-weight: bold; margin-bottom: 5px;'>❌ Error</div>" +
-                        "<div style='color: #ECF0F1;'>" + message + "</div>" +
-                        "</div>" +
-                        "</div></html>",
-                "Error",
-                JOptionPane.ERROR_MESSAGE);
+        JOptionPane.showMessageDialog(this, message, "Error", JOptionPane.ERROR_MESSAGE);
     }
 
     private void showSuccess(String message) {
-        JOptionPane.showMessageDialog(this,
-                "<html><div style='text-align: center; padding: 10px;'>" +
-                        "<div style='background: #2C3E50; padding: 15px; border-radius: 8px; border-left: 4px solid #27AE60;'>" +
-                        "<div style='color: #FFFFFF; font-weight: bold; margin-bottom: 5px;'>✅ Éxito</div>" +
-                        "<div style='color: #ECF0F1;'>" + message + "</div>" +
-                        "</div>" +
-                        "</div></html>",
-                "Éxito",
-                JOptionPane.INFORMATION_MESSAGE);
+        JOptionPane.showMessageDialog(this, message, "Éxito", JOptionPane.INFORMATION_MESSAGE);
     }
 
-    // Clases internas para componentes modernos con tema azul
+    // Clases internas para componentes modernos
     class ModernTextField extends JTextField {
         private String placeholder;
 
         public ModernTextField(String placeholder) {
             this.placeholder = placeholder;
-            setFont(new Font("Segoe UI", Font.PLAIN, 14));
+            setFont(new Font("Segoe UI", Font.PLAIN, 11));
             setBorder(BorderFactory.createCompoundBorder(
                     BorderFactory.createLineBorder(BORDER_COLOR, 1),
-                    createEmptyBorder(10, 15, 10, 15)
+                    createEmptyBorder(4, 8, 4, 8)
             ));
             setBackground(new Color(50, 65, 95));
             setForeground(TEXT_WHITE);
@@ -815,12 +603,12 @@ public class BodegaVerPeticiones extends JInternalFrame {
 
     class ModernComboBox extends JComboBox<String> {
         public ModernComboBox() {
-            setFont(new Font("Segoe UI", Font.PLAIN, 14));
+            setFont(new Font("Segoe UI", Font.PLAIN, 11));
             setBackground(new Color(50, 65, 95));
             setForeground(TEXT_WHITE);
             setBorder(BorderFactory.createCompoundBorder(
                     BorderFactory.createLineBorder(BORDER_COLOR, 1),
-                    createEmptyBorder(8, 12, 8, 12)
+                    createEmptyBorder(4, 8, 4, 8)
             ));
             setRenderer(new ModernComboBoxRenderer());
         }
@@ -831,8 +619,8 @@ public class BodegaVerPeticiones extends JInternalFrame {
         public Component getListCellRendererComponent(JList<?> list, Object value, int index,
                                                       boolean isSelected, boolean cellHasFocus) {
             JLabel label = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
-            label.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-            label.setBorder(createEmptyBorder(5, 10, 5, 10));
+            label.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+            label.setBorder(createEmptyBorder(2, 6, 2, 6));
 
             if (isSelected) {
                 label.setBackground(ACCENT_COLOR);
@@ -853,13 +641,13 @@ public class BodegaVerPeticiones extends JInternalFrame {
             super(text);
             this.originalColor = color;
 
-            setFont(new Font("Segoe UI", Font.BOLD, 12));
+            setFont(new Font("Segoe UI", Font.BOLD, 11));
             setBackground(color);
             setForeground(TEXT_WHITE);
             setFocusPainted(false);
             setBorderPainted(false);
             setCursor(new Cursor(Cursor.HAND_CURSOR));
-            setBorder(createEmptyBorder(10, 20, 10, 20));
+            setBorder(createEmptyBorder(6, 10, 6, 10));
 
             addMouseListener(new MouseAdapter() {
                 @Override
@@ -886,8 +674,7 @@ public class BodegaVerPeticiones extends JInternalFrame {
                                                        int row, int column) {
             JLabel label = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
             label.setHorizontalAlignment(SwingConstants.RIGHT);
-            label.setFont(new Font("Segoe UI", Font.BOLD, 11));
-            label.setBackground(new Color(50, 65, 95));
+            label.setFont(new Font("Segoe UI", Font.BOLD, 9));
 
             if (value instanceof Double) {
                 double stock = (Double) value;
@@ -895,13 +682,13 @@ public class BodegaVerPeticiones extends JInternalFrame {
 
                 if (stock < cantidadSolicitada) {
                     label.setForeground(DANGER_COLOR);
-                    label.setText("🔴 " + String.format("%.2f", stock));
+                    label.setText("🔴" + stock);
                 } else if (stock < cantidadSolicitada * 1.5) {
                     label.setForeground(WARNING_COLOR);
-                    label.setText("🟡 " + String.format("%.2f", stock));
+                    label.setText("🟡" + stock);
                 } else {
                     label.setForeground(SUCCESS_COLOR);
-                    label.setText("🟢 " + String.format("%.2f", stock));
+                    label.setText("🟢" + stock);
                 }
             }
 
@@ -913,32 +700,43 @@ public class BodegaVerPeticiones extends JInternalFrame {
         }
     }
 
-    class AccionesRenderer extends DefaultTableCellRenderer {
+    class EstadoRenderer extends DefaultTableCellRenderer {
         @Override
         public Component getTableCellRendererComponent(JTable table, Object value,
                                                        boolean isSelected, boolean hasFocus,
                                                        int row, int column) {
-            JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 5, 0));
-            panel.setBackground(isSelected ? ACCENT_COLOR : new Color(50, 65, 95));
+            JLabel label = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+            label.setHorizontalAlignment(SwingConstants.CENTER);
+            label.setFont(new Font("Segoe UI", Font.BOLD, 9));
 
-            JButton btnAprobar = new JButton("✅");
-            btnAprobar.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-            btnAprobar.setBackground(SUCCESS_COLOR);
-            btnAprobar.setForeground(TEXT_WHITE);
-            btnAprobar.setBorder(createEmptyBorder(5, 8, 5, 8));
-            btnAprobar.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            String estado = value != null ? value.toString() : "";
+            switch (estado) {
+                case "pendiente":
+                    label.setForeground(WARNING_COLOR);
+                    label.setText("⏳ Pendiente");
+                    break;
+                case "aprobada":
+                    label.setForeground(SUCCESS_COLOR);
+                    label.setText("✅ Aprobada");
+                    break;
+                case "rechazada":
+                    label.setForeground(DANGER_COLOR);
+                    label.setText("❌ Rechazada");
+                    break;
+                case "despachada":
+                    label.setForeground(INFO_COLOR);
+                    label.setText("🚚 Despachada");
+                    break;
+                default:
+                    label.setForeground(TEXT_WHITE);
+                    label.setText(estado);
+            }
 
-            JButton btnRechazar = new JButton("❌");
-            btnRechazar.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-            btnRechazar.setBackground(DANGER_COLOR);
-            btnRechazar.setForeground(TEXT_WHITE);
-            btnRechazar.setBorder(createEmptyBorder(5, 8, 5, 8));
-            btnRechazar.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            if (isSelected) {
+                label.setBackground(ACCENT_COLOR);
+            }
 
-            panel.add(btnAprobar);
-            panel.add(btnRechazar);
-
-            return panel;
+            return label;
         }
     }
 
@@ -949,20 +747,13 @@ public class BodegaVerPeticiones extends JInternalFrame {
             super.paintComponent(g);
             Graphics2D g2d = (Graphics2D) g;
             g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
 
-            // Gradiente azul oscuro moderno
             GradientPaint gradient = new GradientPaint(
                     0, 0, new Color(30, 40, 60),
                     getWidth(), getHeight(), new Color(50, 70, 100)
             );
             g2d.setPaint(gradient);
             g2d.fillRect(0, 0, getWidth(), getHeight());
-
-            // Elementos decorativos sutiles
-            g2d.setColor(new Color(255, 255, 255, 10));
-            g2d.fillOval(-50, -50, 150, 150);
-            g2d.fillOval(getWidth() - 100, getHeight() - 100, 200, 200);
         }
     }
 }
