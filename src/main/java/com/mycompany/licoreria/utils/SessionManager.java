@@ -79,20 +79,14 @@ public class SessionManager {
     }
 
     /**
-     * Verificar permisos - TEMPORALMENTE TODOS TIENEN ACCESO A TODO
+     * Verificar permisos por módulo
      */
     public static boolean tienePermiso(String modulo) {
         if (!haySesionActiva()) return false;
 
-        // TEMPORAL: Permitir acceso a todos los módulos para todos los usuarios
-        System.out.println("ACCESO TEMPORAL: Usuario " + currentUser.getUsername() +
-                " accediendo a módulo: " + modulo);
-        return true;
-
-        /* CÓDIGO ORIGINAL (COMENTADO)
         switch (modulo.toUpperCase()) {
             case "ADMINISTRACION":
-                return currentUser.getRolId() == 1 || currentUser.getRolId() == 3; // Admin o Bodega
+                return currentUser.getRolId() == 1; // Solo Admin
             case "BODEGA":
                 return currentUser.getRolId() == 3 || currentUser.getRolId() == 1; // Bodega o Admin
             case "VENTAS":
@@ -104,7 +98,6 @@ public class SessionManager {
             default:
                 return false;
         }
-        */
     }
 
     /**
