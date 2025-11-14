@@ -177,7 +177,8 @@ public class Licoreria {
                 {"📦", "Módulo de Bodega", "Gestión de inventario"},
                 {"🛒", "Punto de Venta", "Sistema de ventas completo"},
                 {"📮", "Solicitar Stock", "Peticiones a bodega"},
-                {"📈", "Peticiones de Stock", "Gestión de solicitudes"}
+                {"📈", "Peticiones de Stock", "Gestión de solicitudes"},
+                {"🏭", "Solicitudes de Compra", "Pedidos a proveedores"}
         };
 
         for (String[] modulo : modulos) {
@@ -320,6 +321,7 @@ public class Licoreria {
         menuAdministracion.add(crearMenuItem("Gestión de Usuarios", 'U', "Ctrl+U", e -> abrirFormularioUsuarios()));
         menuAdministracion.add(crearMenuItem("Historial del Sistema", 'H', "Ctrl+H", e -> abrirFormularioHistorial()));
         menuAdministracion.add(crearMenuItem("Peticiones de Stock", 'S', "Ctrl+P", e -> abrirFormularioPeticiones()));
+        menuAdministracion.add(crearMenuItem("Solicitudes de Compra", 'C', "Ctrl+Shift+C", e -> abrirSolicitudesCompra()));
 
         // Menú Bodega (admin y bodega)
         JMenu menuBodega = crearMenu("Bodega", 'B');
@@ -514,8 +516,10 @@ public class Licoreria {
             modulos.append("<li>👥 Administración Completa</li>");
             modulos.append("<li>📦 Módulo de Bodega</li>");
             modulos.append("<li>🛒 Módulo de Vendedor</li>");
+            modulos.append("<li>🏭 Solicitudes de Compra</li>");
         } else if (SessionManager.esBodega()) {
             modulos.append("<li>📦 Módulo de Bodega</li>");
+            modulos.append("<li>🏭 Solicitar a Proveedores</li>");
         } else if (SessionManager.esVendedor()) {
             modulos.append("<li>🛒 Punto de Venta</li>");
             modulos.append("<li>📮 Solicitar Stock</li>");
@@ -584,6 +588,14 @@ public class Licoreria {
             return;
         }
         mostrarFormulario(new AdminVerPeticiones());
+    }
+
+    private static void abrirSolicitudesCompra() {
+        if (!SessionManager.tienePermiso("ADMINISTRACION")) {
+            mostrarErrorPermisos();
+            return;
+        }
+        mostrarFormulario(new AdminSolicitudesCompra());
     }
 
     private static void abrirModuloBodega() {
@@ -757,6 +769,7 @@ public class Licoreria {
         );
     }
 
+
     /**
      * ACERCA DEL SISTEMA (mejorado)
      */
@@ -768,8 +781,8 @@ public class Licoreria {
                         "<h2 style='color: #2C3E50; margin: 0 0 15px 0;'>Sistema de Gestión - Licorería</h2>" +
                         "<div style='background: white; padding: 15px; border-radius: 8px; margin: 10px 0;'>" +
                         "<p style='margin: 5px 0;'><b>🎯 Versión:</b> 3.0</p>" +
-                        "<p style='margin: 5px 0;'><b>👨‍💻 Desarrollado por:</b> Emerson</p>" +
-                        "<p style='margin: 5px 0;'><b>📅 Fecha:</b> Noviembre 2024</p>" +
+                        "<p style='margin: 5px 0;'><b>👨‍💻 Desarrollado por:</b> Emerson, Christofer, Carlos /p>" +
+                        "<p style='margin: 5px 0;'><b>📅 Fecha:</b> Noviembre 2025</p>" +
                         "</div>" +
                         "<h3 style='color: #2C3E50; margin: 15px 0 10px 0;'>🚀 Módulos Implementados:</h3>" +
                         "<div style='background: white; padding: 15px; border-radius: 8px; text-align: left;'>" +

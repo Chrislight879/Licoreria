@@ -3,6 +3,7 @@ package com.mycompany.licoreria.controllers;
 import com.mycompany.licoreria.models.Producto;
 import com.mycompany.licoreria.models.PeticionStock;
 import com.mycompany.licoreria.services.BodegaService;
+import com.mycompany.licoreria.utils.SessionManager;
 import java.util.List;
 
 public class BodegaController {
@@ -70,23 +71,21 @@ public class BodegaController {
     }
 
     /**
-     * Crear solicitud de compra a proveedor - MODIFICADO para crear petición de stock
+     * Crear solicitud de compra a proveedor - CORREGIDO
      */
     public boolean crearSolicitudCompra(int productoId, double cantidadSolicitada, String observaciones) {
         try {
-            // Primero crear la solicitud de compra normal
-            boolean solicitudCreada = bodegaService.crearSolicitudCompra(productoId, cantidadSolicitada, observaciones);
-
-            if (solicitudCreada) {
-                // Ahora crear también una petición de stock para que el admin la vea y apruebe
-                int usuarioBodegaId = 3; // Asumiendo que el usuario bodega tiene ID 3
-
-                // Crear petición de stock para aprobación del admin
-                return bodegaService.crearPeticionStockBodega(productoId, usuarioBodegaId, cantidadSolicitada,
-                        "SOLICITUD BODEGA: " + observaciones);
+            // Obtener usuario logueado REAL
+            if (SessionManager.getCurrentUser() == null) {
+                throw new IllegalStateException("No hay usuario logueado");
             }
 
-            return false;
+            int usuarioId = SessionManager.getCurrentUser().getUsuarioId();
+
+            // Crear controller de solicitudes
+            SolicitudCompraController solicitudController = new SolicitudCompraController();
+            return solicitudController.crearSolicitudCompra(productoId, usuarioId, cantidadSolicitada, observaciones);
+
         } catch (IllegalArgumentException e) {
             throw e; // Re-lanzar validaciones específicas
         } catch (Exception e) {
@@ -95,7 +94,7 @@ public class BodegaController {
     }
 
     /**
-     * Obtener peticiones pendientes de vendedores
+     * Obtener peticiones de vendedores pendientes
      */
     public List<PeticionStock> getPeticionesPendientes() {
         try {
@@ -155,28 +154,13 @@ public class BodegaController {
     }
 
     /**
-     * NUEVO MÉTODO: Obtener peticiones de bodega pendientes
+     * Obtener petición por ID
      */
-    public List<PeticionStock> getPeticionesBodegaPendientes() {
+    public PeticionStock getPeticionById(int peticionId) {
         try {
-            // Filtrar peticiones que son de bodega
-            List<PeticionStock> todasPeticiones = bodegaService.getPeticionesPendientes();
-            return todasPeticiones.stream()
-                    .filter(p -> p.getObservaciones() != null && p.getObservaciones().contains("SOLICITUD BODEGA"))
-                    .toList();
+            return bodegaService.getPeticionById(peticionId);
         } catch (Exception e) {
-            throw new RuntimeException("Error al obtener peticiones de bodega: " + e.getMessage(), e);
-        }
-    }
-
-    /**
-     * NUEVO MÉTODO: Aprobar petición de bodega
-     */
-    public boolean aprobarPeticionBodega(int peticionId, int usuarioAprobadorId) {
-        try {
-            return bodegaService.aprobarPeticionBodega(peticionId, usuarioAprobadorId);
-        } catch (Exception e) {
-            throw new RuntimeException("Error al aprobar petición de bodega: " + e.getMessage(), e);
+            throw new RuntimeException("Error al obtener petición: " + e.getMessage(), e);
         }
     }
 }
