@@ -9,6 +9,18 @@ public class SessionManager {
     private static LocalDateTime loginTime;
     private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
+    // Constantes para roles
+    public static final int ROL_ADMIN = 1;
+    public static final int ROL_VENDEDOR = 2;
+    public static final int ROL_BODEGA = 3;
+
+    // Constantes para módulos/vistas
+    public static final String MODULO_ADMINISTRACION = "ADMINISTRACION";
+    public static final String MODULO_BODEGA = "BODEGA";
+    public static final String MODULO_VENTAS = "VENTAS";
+    public static final String MODULO_INVENTARIO = "INVENTARIO";
+    public static final String MODULO_REPORTES = "REPORTES";
+
     /**
      * Iniciar sesión
      */
@@ -79,25 +91,56 @@ public class SessionManager {
     }
 
     /**
-     * Verificar permisos por módulo
+     * Verificar permisos por módulo - MEJORADO
      */
     public static boolean tienePermiso(String modulo) {
         if (!haySesionActiva()) return false;
 
+        // Si es administrador, solo puede acceder a módulos de administración
+        if (currentUser.getRolId() == ROL_ADMIN) {
+            return modulo.equalsIgnoreCase(MODULO_ADMINISTRACION) || 
+                   modulo.equalsIgnoreCase(MODULO_REPORTES);
+        }
+
+        // Para otros roles
         switch (modulo.toUpperCase()) {
-            case "ADMINISTRACION":
-                return currentUser.getRolId() == 1; // Solo Admin
-            case "BODEGA":
-                return currentUser.getRolId() == 3 || currentUser.getRolId() == 1; // Bodega o Admin
-            case "VENTAS":
-                return currentUser.getRolId() == 2 || currentUser.getRolId() == 1; // Vendedor o Admin
-            case "INVENTARIO":
-                return currentUser.getRolId() == 3 || currentUser.getRolId() == 1; // Bodega o Admin
-            case "REPORTES":
-                return currentUser.getRolId() == 1; // Solo Admin
+            case MODULO_BODEGA:
+            case MODULO_INVENTARIO:
+                return currentUser.getRolId() == ROL_BODEGA;
+            case MODULO_VENTAS:
+                return currentUser.getRolId() == ROL_VENDEDOR;
+            case MODULO_ADMINISTRACION:
+            case MODULO_REPORTES:
+                return false; // Solo admin puede acceder
             default:
                 return false;
         }
+    }
+
+    /**
+     * Verificar acceso a vista específica - NUEVO MÉTODO
+     */
+    public static boolean puedeAccederAVista(String nombreVista) {
+        if (!haySesionActiva()) return false;
+
+        // Mapeo de vistas a módulos
+        if (nombreVista.toLowerCase().contains("admin") || 
+            nombreVista.toLowerCase().contains("administracion")) {
+            return tienePermiso(MODULO_ADMINISTRACION);
+        }
+        else if (nombreVista.toLowerCase().contains("bodega") || 
+                 nombreVista.toLowerCase().contains("inventario")) {
+            return tienePermiso(MODULO_BODEGA);
+        }
+        else if (nombreVista.toLowerCase().contains("venta") || 
+                 nombreVista.toLowerCase().contains("vendedor")) {
+            return tienePermiso(MODULO_VENTAS);
+        }
+        else if (nombreVista.toLowerCase().contains("reporte")) {
+            return tienePermiso(MODULO_REPORTES);
+        }
+
+        return false;
     }
 
     /**
@@ -107,9 +150,9 @@ public class SessionManager {
         if (!haySesionActiva()) return "No logueado";
 
         switch (currentUser.getRolId()) {
-            case 1: return "Administrador";
-            case 2: return "Vendedor";
-            case 3: return "Encargado de Bodega";
+            case ROL_ADMIN: return "Administrador";
+            case ROL_VENDEDOR: return "Vendedor";
+            case ROL_BODEGA: return "Encargado de Bodega";
             default: return "Usuario";
         }
     }
@@ -118,20 +161,38 @@ public class SessionManager {
      * Verificar si es administrador
      */
     public static boolean esAdministrador() {
-        return haySesionActiva() && currentUser.getRolId() == 1;
+        return haySesionActiva() && currentUser.getRolId() == ROL_ADMIN;
     }
 
     /**
      * Verificar si es bodega
      */
     public static boolean esBodega() {
-        return haySesionActiva() && currentUser.getRolId() == 3;
+        return haySesionActiva() && currentUser.getRolId() == ROL_BODEGA;
     }
 
     /**
      * Verificar si es vendedor
      */
     public static boolean esVendedor() {
-        return haySesionActiva() && currentUser.getRolId() == 2;
+        return haySesionActiva() && currentUser.getRolId() == ROL_VENDEDOR;
+    }
+
+    /**
+     * Redirigir a la vista principal según el rol - NUEVO MÉTODO
+     */
+    public static String getVistaPrincipal() {
+        if (!haySesionActiva()) return "login";
+
+        switch (currentUser.getRolId()) {
+            case ROL_ADMIN:
+                return "vistaAdministracion";
+            case ROL_VENDEDOR:
+                return "vistaVentas";
+            case ROL_BODEGA:
+                return "vistaBodega";
+            default:
+                return "login";
+        }
     }
 }
