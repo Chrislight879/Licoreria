@@ -3,7 +3,6 @@ package com.mycompany.licoreria.formularios;
 import com.mycompany.licoreria.controllers.SolicitudCompraController;
 import com.mycompany.licoreria.models.SolicitudCompra;
 import javax.swing.*;
-import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.*;
@@ -23,6 +22,8 @@ public class AdminSolicitudesCompra extends JInternalFrame {
     private final Color WARNING_COLOR = new Color(255, 193, 87);
     private final Color DANGER_COLOR = new Color(255, 118, 117);
     private final Color TEXT_WHITE = Color.WHITE;
+    private final Color BACKGROUND_COLOR = new Color(30, 40, 60);
+    private final Color HEADER_COLOR = new Color(40, 55, 80);
 
     public AdminSolicitudesCompra() {
         initComponents();
@@ -42,7 +43,7 @@ public class AdminSolicitudesCompra extends JInternalFrame {
         // Panel principal
         JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
         mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        mainPanel.setBackground(new Color(30, 40, 60));
+        mainPanel.setBackground(BACKGROUND_COLOR);
 
         // Header
         mainPanel.add(createHeaderPanel(), BorderLayout.NORTH);
@@ -58,7 +59,7 @@ public class AdminSolicitudesCompra extends JInternalFrame {
 
     private JPanel createHeaderPanel() {
         JPanel headerPanel = new JPanel(new BorderLayout());
-        headerPanel.setBackground(new Color(40, 55, 80));
+        headerPanel.setBackground(HEADER_COLOR);
         headerPanel.setBorder(BorderFactory.createEmptyBorder(10, 15, 10, 15));
 
         // Título
@@ -74,9 +75,13 @@ public class AdminSolicitudesCompra extends JInternalFrame {
         lblFiltro.setForeground(TEXT_WHITE);
 
         cmbEstado = new JComboBox<>(new String[]{"Todas", "pendiente", "aprobada", "rechazada", "completada"});
+        cmbEstado.setBackground(Color.WHITE);
+        cmbEstado.setForeground(Color.BLACK);
         cmbEstado.addActionListener(e -> filtrarPorEstado());
 
         JButton btnActualizar = new JButton("🔄 Actualizar");
+        btnActualizar.setForeground(TEXT_WHITE);
+        btnActualizar.setBackground(PRIMARY_COLOR);
         btnActualizar.addActionListener(e -> cargarSolicitudes());
 
         filterPanel.add(lblFiltro);
@@ -91,7 +96,7 @@ public class AdminSolicitudesCompra extends JInternalFrame {
 
     private JPanel createTablePanel() {
         JPanel tablePanel = new JPanel(new BorderLayout());
-        tablePanel.setBackground(new Color(40, 55, 80));
+        tablePanel.setBackground(HEADER_COLOR);
 
         // Modelo de tabla
         String[] columnNames = {
@@ -106,10 +111,15 @@ public class AdminSolicitudesCompra extends JInternalFrame {
         solicitudesTable = new JTable(tableModel);
         solicitudesTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         solicitudesTable.setRowHeight(30);
+        solicitudesTable.setBackground(BACKGROUND_COLOR);
+        solicitudesTable.setForeground(TEXT_WHITE);
+        solicitudesTable.setGridColor(Color.GRAY);
         solicitudesTable.getTableHeader().setBackground(PRIMARY_COLOR);
         solicitudesTable.getTableHeader().setForeground(TEXT_WHITE);
+        solicitudesTable.setFont(new Font("Segoe UI", Font.PLAIN, 12));
 
         JScrollPane scrollPane = new JScrollPane(solicitudesTable);
+        scrollPane.getViewport().setBackground(BACKGROUND_COLOR);
         tablePanel.add(scrollPane, BorderLayout.CENTER);
 
         // Estadísticas
@@ -123,18 +133,18 @@ public class AdminSolicitudesCompra extends JInternalFrame {
 
     private JPanel createActionPanel() {
         JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
-        actionPanel.setBackground(new Color(40, 55, 80));
+        actionPanel.setBackground(HEADER_COLOR);
 
-        JButton btnAprobar = new JButton("✅ Aprobar");
+        JButton btnAprobar = createStyledButton("✅ Aprobar", SUCCESS_COLOR);
         btnAprobar.addActionListener(e -> aprobarSolicitud());
 
-        JButton btnRechazar = new JButton("❌ Rechazar");
+        JButton btnRechazar = createStyledButton("❌ Rechazar", DANGER_COLOR);
         btnRechazar.addActionListener(e -> rechazarSolicitud());
 
-        JButton btnCompletar = new JButton("📦 Despachar");
+        JButton btnCompletar = createStyledButton("📦 Despachar", WARNING_COLOR);
         btnCompletar.addActionListener(e -> completarSolicitud());
 
-        JButton btnDetalles = new JButton("👁️ Ver Detalles");
+        JButton btnDetalles = createStyledButton("👁️ Ver Detalles", SECONDARY_COLOR);
         btnDetalles.addActionListener(e -> verDetalles());
 
         actionPanel.add(btnAprobar);
@@ -143,6 +153,16 @@ public class AdminSolicitudesCompra extends JInternalFrame {
         actionPanel.add(btnDetalles);
 
         return actionPanel;
+    }
+
+    private JButton createStyledButton(String text, Color backgroundColor) {
+        JButton button = new JButton(text);
+        button.setBackground(backgroundColor);
+        button.setForeground(TEXT_WHITE);
+        button.setFocusPainted(false);
+        button.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        button.setBorder(BorderFactory.createEmptyBorder(8, 15, 8, 15));
+        return button;
     }
 
     private void cargarSolicitudes() {
@@ -163,7 +183,7 @@ public class AdminSolicitudesCompra extends JInternalFrame {
             }
             actualizarEstadisticas();
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "Error: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            showErrorMessage("Error: " + e.getMessage());
         }
     }
 
@@ -190,50 +210,50 @@ public class AdminSolicitudesCompra extends JInternalFrame {
                 });
             }
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "Error: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            showErrorMessage("Error: " + e.getMessage());
         }
     }
 
     private void aprobarSolicitud() {
         int selectedRow = solicitudesTable.getSelectedRow();
         if (selectedRow == -1) {
-            JOptionPane.showMessageDialog(this, "Seleccione una solicitud", "Advertencia", JOptionPane.WARNING_MESSAGE);
+            showWarningMessage("Seleccione una solicitud");
             return;
         }
 
         int solicitudId = (int) tableModel.getValueAt(selectedRow, 0);
         try {
             if (solicitudController.aprobarSolicitud(solicitudId)) {
-                JOptionPane.showMessageDialog(this, "Solicitud aprobada exitosamente");
+                showSuccessMessage("Solicitud aprobada exitosamente");
                 cargarSolicitudes();
             }
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "Error: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            showErrorMessage("Error: " + e.getMessage());
         }
     }
 
     private void rechazarSolicitud() {
         int selectedRow = solicitudesTable.getSelectedRow();
         if (selectedRow == -1) {
-            JOptionPane.showMessageDialog(this, "Seleccione una solicitud", "Advertencia", JOptionPane.WARNING_MESSAGE);
+            showWarningMessage("Seleccione una solicitud");
             return;
         }
 
         int solicitudId = (int) tableModel.getValueAt(selectedRow, 0);
         try {
             if (solicitudController.rechazarSolicitud(solicitudId)) {
-                JOptionPane.showMessageDialog(this, "Solicitud rechazada");
+                showSuccessMessage("Solicitud rechazada");
                 cargarSolicitudes();
             }
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "Error: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            showErrorMessage("Error: " + e.getMessage());
         }
     }
 
     private void completarSolicitud() {
         int selectedRow = solicitudesTable.getSelectedRow();
         if (selectedRow == -1) {
-            JOptionPane.showMessageDialog(this, "Seleccione una solicitud", "Advertencia", JOptionPane.WARNING_MESSAGE);
+            showWarningMessage("Seleccione una solicitud");
             return;
         }
 
@@ -241,26 +261,25 @@ public class AdminSolicitudesCompra extends JInternalFrame {
         String producto = (String) tableModel.getValueAt(selectedRow, 1);
         String cantidad = (String) tableModel.getValueAt(selectedRow, 2);
 
-        int confirm = JOptionPane.showConfirmDialog(this,
+        int confirm = showConfirmDialog(
                 "¿Está seguro de despachar esta solicitud?\n\n" +
                         "Producto: " + producto + "\n" +
                         "Cantidad: " + cantidad + "\n\n" +
                         "⚠️ Esta acción SUMARÁ el stock a bodega automáticamente.",
-                "Confirmar Despacho",
-                JOptionPane.YES_NO_OPTION);
+                "Confirmar Despacho"
+        );
 
         if (confirm == JOptionPane.YES_OPTION) {
             try {
                 if (solicitudController.completarSolicitud(solicitudId)) {
-                    JOptionPane.showMessageDialog(this,
+                    showSuccessMessage(
                             "✅ Solicitud despachada exitosamente\n" +
-                                    "Stock actualizado en bodega",
-                            "Éxito",
-                            JOptionPane.INFORMATION_MESSAGE);
+                                    "Stock actualizado en bodega"
+                    );
                     cargarSolicitudes();
                 }
             } catch (Exception e) {
-                JOptionPane.showMessageDialog(this, "Error: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                showErrorMessage("Error: " + e.getMessage());
             }
         }
     }
@@ -268,7 +287,7 @@ public class AdminSolicitudesCompra extends JInternalFrame {
     private void verDetalles() {
         int selectedRow = solicitudesTable.getSelectedRow();
         if (selectedRow == -1) {
-            JOptionPane.showMessageDialog(this, "Seleccione una solicitud", "Advertencia", JOptionPane.WARNING_MESSAGE);
+            showWarningMessage("Seleccione una solicitud");
             return;
         }
 
@@ -282,8 +301,8 @@ public class AdminSolicitudesCompra extends JInternalFrame {
         String observaciones = (String) tableModel.getValueAt(selectedRow, 7);
 
         String mensaje = String.format(
-                "<html><div style='width: 300px;'>" +
-                        "<h3>Detalles de Solicitud #%d</h3>" +
+                "<html><div style='width: 300px; color: white; background-color: #283750; padding: 15px; border-radius: 5px;'>" +
+                        "<h3 style='color: white; margin-top: 0;'>Detalles de Solicitud #%d</h3>" +
                         "<b>Producto:</b> %s<br>" +
                         "<b>Cantidad:</b> %s<br>" +
                         "<b>Proveedor:</b> %s<br>" +
@@ -292,7 +311,8 @@ public class AdminSolicitudesCompra extends JInternalFrame {
                         "<b>Estado:</b> %s<br>" +
                         "<b>Observaciones:</b><br>%s" +
                         "</div></html>",
-                solicitudId, producto, cantidad, proveedor, solicitante, fecha, estado, observaciones
+                solicitudId, producto, cantidad, proveedor, solicitante, fecha, estado,
+                observaciones != null ? observaciones : "Ninguna"
         );
 
         JOptionPane.showMessageDialog(this, mensaje, "Detalles de Solicitud", JOptionPane.INFORMATION_MESSAGE);
@@ -305,5 +325,39 @@ public class AdminSolicitudesCompra extends JInternalFrame {
         } catch (Exception e) {
             lblEstadisticas.setText("Error al cargar estadísticas");
         }
+    }
+
+    // Métodos personalizados para mostrar mensajes con colores
+    private void showErrorMessage(String message) {
+        JOptionPane.showMessageDialog(this,
+                "<html><div style='color: white;'>" + message + "</div></html>",
+                "Error",
+                JOptionPane.ERROR_MESSAGE);
+    }
+
+    private void showSuccessMessage(String message) {
+        JOptionPane.showMessageDialog(this,
+                "<html><div style='color: white;'>" + message + "</div></html>",
+                "Éxito",
+                JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    private void showWarningMessage(String message) {
+        JOptionPane.showMessageDialog(this,
+                "<html><div style='color: white;'>" + message + "</div></html>",
+                "Advertencia",
+                JOptionPane.WARNING_MESSAGE);
+    }
+
+    private int showConfirmDialog(String message, String title) {
+        Object[] options = {"Sí", "No"};
+        return JOptionPane.showOptionDialog(this,
+                "<html><div style='color: white; width: 300px;'>" + message + "</div></html>",
+                title,
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.QUESTION_MESSAGE,
+                null,
+                options,
+                options[1]);
     }
 }
